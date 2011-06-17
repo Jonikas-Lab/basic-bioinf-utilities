@@ -207,6 +207,9 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
 #  if cutoff=100, what we want is: 1->1, 2->2, 5->5, 10->10, 50->50, 100->100, 1000->200, 10000->300, 100000->400, ...
 #  if cutoff=1, what we want is: 1->1, 10->2, 100->3, 1000->4, ...
 # TODO this should probably just return a graph instead of the values!  Since there's no conceivable use for this except for graphing.  And then I could make the graph have extra features, like ticks/labels and a lin/log transition mark.
+### TODO this example shows the proper way of implementing a custom scale in matplotlib: 
+# http://matplotlib.sourceforge.net/examples/api/custom_scale_example.html
+# also see StackOverflow: http://stackoverflow.com/questions/6382612/python-equivalent-for-matlabs-normplot/6382851#6382851
 def convert_data_to_linlog(dataset,cutoff=10):
     """ Convert the data (list of numbers) for correct plotting on a scale that's linear up to cutoff and log afterward."""
     from math import log10
