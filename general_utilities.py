@@ -7,6 +7,7 @@ Weronika Patena, 2010-2011
 
 from __future__ import division 
 import sys
+import testing_utilities
 
 def get_overlap_of_dictionaries(dict_list):
     """ Given a list of dictionaries, return a similar new list with only the keys shared by all the dictionaries. """
@@ -18,6 +19,12 @@ def get_overlap_of_dictionaries(dict_list):
     for d in dict_list:     
         new_dict_list.append(dict([(k,v) for (k,v) in d.iteritems() if k in overlap_keys]))
     return new_dict_list
+
+def invert_list_to_dict(input_list):
+    """ Given a list with no duplicates, return a dict mapping the values to list positions ([a,b,c] -> {a:1,b:2,c:3})."""
+    if not len(set(input_list)) == len(input_list):
+        raise ValueError("Can't reliably invert a list with duplicate elements!")
+    return dict([(value,index) for (index,value) in enumerate(input_list)])
 
 ### Read various file types
 
@@ -59,6 +66,17 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
         else:
             data_dict_by_header[colheader] = dict([(ID_list[i],column_data[i]) for i in range(len(column_data))])
     return ID_list, data_dict_by_header
+
+### Write lines to file
+
+def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
+    """ Given a list of lines, a filename, and an optional header, open file, write header and all lines, close. """
+    line_end = "\n" if add_newlines else ""
+    # using the with-as syntax automatically closes the file afterward
+    with open(filename,'w') as OUTFILE:
+        if header:               OUTFILE.write(header+line_end)
+        for line in line_list:   OUTFILE.write(line+line_end)
+
 
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
 
@@ -227,3 +245,17 @@ def convert_data_to_linlog(dataset,cutoff=10):
 
 # general function for reading input from various sources
 from read_input import read_input
+
+if __name__=='__main__':
+    # testing!
+    # using if True blocks only to enable folding to look at only one test-block at a time
+
+    if True:
+        print "Testing invert_list_to_dict function..."
+        assert invert_list_to_dict([10,11,12]) == {10:0, 11:1, 12:2}
+        testing_utilities.call_should_fail(invert_list_to_dict,[[10,11,10]],ValueError,
+                                           message="Shouldn't ever be able to invert a list with duplicate elements!")
+        print "...DONE"
+
+    # TODO add tests for everything else (probably with unittest and/or nose, once I learn those
+
