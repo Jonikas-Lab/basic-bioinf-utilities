@@ -67,7 +67,7 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
             data_dict_by_header[colheader] = dict([(ID_list[i],column_data[i]) for i in range(len(column_data))])
     return ID_list, data_dict_by_header
 
-### Write lines to file
+### Writing to files
 
 def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
     """ Given a list of lines, a filename, and an optional header, open file, write header and all lines, close. """
@@ -76,6 +76,15 @@ def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
     with open(filename,'w') as OUTFILE:
         if header:               OUTFILE.write(header+line_end)
         for line in line_list:   OUTFILE.write(line+line_end)
+
+def write_header_data(OUTFILE,options=None):
+    """ Print general script run data (command, path, date/time, full optparse options, etc) to given open file object."""
+    import sys,os,pwd,time,socket
+    OUTFILE.write("# Command line this file was generated with: %s\n"%(' '.join(sys.argv)))
+    OUTFILE.write("# Path: %s\n"%(os.getcwd()))
+    OUTFILE.write("# Date: %s,\t\tUser: %s,\t\tSystem: %s\n"%(time.ctime(), pwd.getpwuid(os.getuid())[0], 
+                                                              socket.gethostname()))
+    if options:     OUTFILE.write("# Full options: %s\n"%options)
 
 
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
