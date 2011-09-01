@@ -7,7 +7,8 @@ Weronika Patena, 2010-2011
 
 from __future__ import division 
 import sys
-import testing_utilities
+
+# list/dictionary/etc utilities
 
 def get_overlap_of_dictionaries(dict_list):
     """ Given a list of dictionaries, return a similar new list with only the keys shared by all the dictionaries. """
@@ -26,7 +27,11 @@ def invert_list_to_dict(input_list):
         raise ValueError("Can't reliably invert a list with duplicate elements!")
     return dict([(value,index) for (index,value) in enumerate(input_list)])
 
+
 ### Read various file types
+
+# general function for reading input from various sources
+from read_input import read_input
 
 def read_two_column_file(filename,numerical_values=True):
     """ Read in a two-column (name,value) tab-separated file (ignore #-comment lines), return data:float(value) dict. """
@@ -67,7 +72,23 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
             data_dict_by_header[colheader] = dict([(ID_list[i],column_data[i]) for i in range(len(column_data))])
     return ID_list, data_dict_by_header
 
+
 ### Writing to files
+
+# DECORATOR
+def replaces_infile_with_outfile(function_to_be_decorated):
+    """ DECORATOR, takes a function that takes an infile and outfile and makes it replace infile with outfile instead. 
+    The decorated function must still have an argument named outfile, but its value will never be used."""
+    def wrapped_function(infile, *args, **kwargs):
+        outfile = '.__tmp__'+infile
+        kwargs['outfile'] = outfile
+        return_val = function_to_be_decorated(infile, *args, **kwargs)
+        if os.path.exists(infile):
+            os.remove(infile)
+        os.rename(outfile,infile)
+        return return_val
+    return wrapped_function
+    # MAYBE-TODO is the way I'm doing this decorator really the best?  Not bad, but requires adding the fake "outfile" argument to all the functions... If I was somehow the function_to_be_decorated's variable list directly instead (with f.__dict__ or f.__setattr__), that wouldn't be an issue... Ask on stackoverflow?
 
 def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
     """ Given a list of lines, a filename, and an optional header, open file, write header and all lines, close. """
@@ -147,6 +168,7 @@ def clean_data_remove(input_data,remove_NaN=True,remove_Inf=True,remove_NegInf=T
     else:
         raise ValueError("input_data argument must be a list, tuple, set or dictionary")
 
+
 ### cutoffs, ranges, sets, etc 
 
 def parse_cutoffs_into_ranges(cutoff_list, if_overlapping):
@@ -165,6 +187,7 @@ def get_sets_from_cutoffs(value_dict, value_ranges):
     for (vmin,vmax) in value_ranges:
         ranges_to_sets[(vmin,vmax)] = [name for (name,val) in value_dict.items() if val>=vmin and val<vmax]
     return ranges_to_sets
+
 
 ### moving average and moving median, plus some help functions (anything starting with _ won't be imported)
 
@@ -252,8 +275,6 @@ def convert_data_to_linlog(dataset,cutoff=10):
 # the fuctions is mplt.yticks([0,1,2,5,10,20,30,40],['0','1','2','5','10','100','1000','10000'])
 # TODO maybe put a transition mark where the scale changes from lin to log?
 
-# general function for reading input from various sources
-from read_input import read_input
 
 if __name__=='__main__':
     # testing!
