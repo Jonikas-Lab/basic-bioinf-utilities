@@ -6,7 +6,8 @@ Weronika Patena, 2010-2011
 """
 
 from __future__ import division 
-import sys
+import sys, os
+from collections import defaultdict
 
 # list/dictionary/etc utilities
 
@@ -26,6 +27,18 @@ def invert_list_to_dict(input_list):
     if not len(set(input_list)) == len(input_list):
         raise ValueError("Can't reliably invert a list with duplicate elements!")
     return dict([(value,index) for (index,value) in enumerate(input_list)])
+
+class keybased_defaultdict(defaultdict):
+    """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
+    Normal defaultdict(int)[9] is 0, because no argument is passed to the int function, and int() is 0.  
+    On the other hand keybased_defaultdict(int)[9] would be 9, keybased_defaultdict(bool)[9] would be True, etc.  """
+    # from http://stackoverflow.com/questions/2912231/is-there-a-clever-way-to-pass-the-key-to-defaultdicts-default-factory
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        else:
+            value = self[key] = self.default_factory(key)
+            return value
 
 
 ### Read various file types
