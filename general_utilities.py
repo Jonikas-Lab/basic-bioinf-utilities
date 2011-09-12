@@ -7,6 +7,7 @@ Weronika Patena, 2010-2011
 
 from __future__ import division 
 import sys, os
+import unittest
 from collections import defaultdict
 
 # list/dictionary/etc utilities
@@ -23,10 +24,34 @@ def get_overlap_of_dictionaries(dict_list):
     return new_dict_list
 
 def invert_list_to_dict(input_list):
-    """ Given a list with no duplicates, return a dict mapping the values to list positions ([a,b,c] -> {a:1,b:2,c:3})."""
+    """ Given a list with no duplicates, return a dict mapping the values to list positions: [a,b,c] -> {a:1,b:2,c:3}."""
     if not len(set(input_list)) == len(input_list):
         raise ValueError("Can't reliably invert a list with duplicate elements!")
     return dict([(value,index) for (index,value) in enumerate(input_list)])
+
+def invert_dict_nodups(input_dict):
+    """ Given a dict with no duplicate values, return value:key dict: {a:1,b:2]} -> {1:a,2:b}."""
+    if not len(set(input_dict.values())) == len(input_dict.values()):
+        raise ValueError("This method can't invert a dictionary with duplicate values! Use invert_dict_tolists.")
+    return dict([(value,key) for (key,value) in input_dict.iteritems()])
+
+def invert_dict_tolists(input_dict):
+    """ Given a dict (duplicate values allowed), return value:key_list dict: {a:1,b:2,c:1]} -> {1:[a,c],2:b}."""
+    inverted_dict = defaultdict(lambda: set())
+    for key,value in input_dict.iteritems():
+        inverted_dict[value].add(key)
+    return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
+
+def invert_listdict_tolists(input_dict):
+    """ Given a dict with list/set values, return single_value:key_list dict: {a:[1,2],b:[2]]} -> {1:[a],2:[a,b]}."""
+    inverted_dict = defaultdict(lambda: set())
+    for key,value_list in input_dict.iteritems():
+        try:
+            for value in value_list:
+                inverted_dict[value].add(key)
+        except TypeError:
+            raise ValueError("invert_listdict_tolists expects all input_dict values to be lists/sets/etc!")
+    return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
 
 class keybased_defaultdict(defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
@@ -263,7 +288,6 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
     return fig
 
 
-    
 
 ### Convert data into linlog scale (slightly weird, for plotting)
 # for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
@@ -289,16 +313,44 @@ def convert_data_to_linlog(dataset,cutoff=10):
 # TODO maybe put a transition mark where the scale changes from lin to log?
 
 
-if __name__=='__main__':
-    # testing!
-    # using if True blocks only to enable folding to look at only one test-block at a time
+class Testing_everything(unittest.TestCase):
+    """ Testing all functions/classes.etc. """
 
-    if True:
-        print "Testing invert_list_to_dict function..."
-        assert invert_list_to_dict([10,11,12]) == {10:0, 11:1, 12:2}
-        testing_utilities.call_should_fail(invert_list_to_dict,[[10,11,10]],ValueError,
-                                           message="Shouldn't ever be able to invert a list with duplicate elements!")
-        print "...DONE"
+    def test_invert_list_to_dict(self):
+        assert invert_list_to_dict([]) == {}
+        assert invert_list_to_dict([10,12,11]) == {10:0, 12:1, 11:2}
+        self.assertRaises(ValueError, invert_list_to_dict, [10,11,10])
+
+    def test_invert_dict_nodups(self):
+        assert invert_dict_nodups({}) == {}
+        assert invert_dict_nodups({1:2,3:4}) == {2:1,4:3}
+        self.assertRaises(ValueError, invert_dict_nodups, {1:2,3:2})
+
+    def test_invert_dict_tolists(self):
+        assert invert_dict_tolists({}) == {}
+        assert invert_dict_tolists({1:2,3:4}) == {2:set([1]),4:set([3])}
+        assert invert_dict_tolists({1:2,3:2}) == {2:set([1,3])}
+
+    def test_invert_listdict_tolists(self):
+        assert invert_listdict_tolists({}) == {}
+        assert invert_listdict_tolists({1:[2],3:[4]}) == {2:set([1]),4:set([3])}
+        assert invert_listdict_tolists({1:[2],3:[2]}) == {2:set([1,3])}
+        assert invert_listdict_tolists({1:[2,4],3:[2]}) == {2:set([1,3]),4:set([1])}
+        self.assertRaises(ValueError, invert_dict_nodups, {1:2,3:2})
+
+    def test_keybased_defaultdict(self):
+        D_nodefault = keybased_defaultdict(None)
+        self.assertRaises(KeyError, lambda: D_nodefault[1])
+        D_constantdefault = keybased_defaultdict(lambda x: 0)
+        assert D_constantdefault[1] == 0
+        assert D_constantdefault[2] == 0
+        D_variabledefault = keybased_defaultdict(lambda x: 2*x)
+        assert D_variabledefault[1] == 2
+        assert D_variabledefault[2] == 4
 
     # TODO add tests for everything else (probably with unittest and/or nose, once I learn those
 
+if __name__=='__main__':
+    """ If module is ran directly, run tests. """
+    print "This is a module for import by other programs - it doesn't do anything on its own.  Running tests..."
+    unittest.main()
