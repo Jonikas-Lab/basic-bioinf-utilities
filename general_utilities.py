@@ -288,6 +288,36 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
     return fig
 
 
+### Useful class mix-ins
+# MAYBE-TODO could/should these be done as a decorators instead?
+
+class FrozenClass(object):
+    """ Class that allows prevention of adding new attributes after creation.
+    Use by inheriting from this, and then running self._freeze() at the end of __init__, like this:
+        class Test_freezing(FrozenClass):
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                self._freeze() # no new attributes after this point.
+        a = Test_freezing(2,3)
+        a.x = 10    # can modify existing attributes after creation
+        a.z = 10    # fails - cannot add NEW atributes after creation
+    """
+    # by Jochen Ritzel on Stackoverflow 
+    #   (http://stackoverflow.com/questions/3603502/prevent-creating-new-attributes-outside-init)
+    # This has to be a new-style class (i.e. inheriting from object), old-style classes don't seem to have __setattr__?
+
+    __isfrozen = False
+
+    def __setattr__(self, key, value):
+        if self.__isfrozen and not hasattr(self, key):
+            raise TypeError( "%r is a frozen class" % self )
+        object.__setattr__(self, key, value)
+    
+    def _freeze(self):
+        self.__isfrozen = True
+
+    
 
 ### Convert data into linlog scale (slightly weird, for plotting)
 # for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
@@ -347,6 +377,24 @@ class Testing_everything(unittest.TestCase):
         D_variabledefault = keybased_defaultdict(lambda x: 2*x)
         assert D_variabledefault[1] == 2
         assert D_variabledefault[2] == 4
+
+    def test_FrozenClass(self):
+        class Test_freezing(FrozenClass):
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                self._freeze() # no new attributes after this point.
+        a = Test_freezing(2,3)
+        assert a.x == 2
+        a.x = 10    # can modify existing attributes after creation - shouldn't raise an exception
+        assert a.x == 10
+        # doing a.z = 10 should fail - cannot add NEW atributes after creation
+        #  testing this two ways: with __setattr__ as a function, and with writing a test function to explicitly 
+        #  test the "a.z = 1" statement (which of course should use __setattr__ anyway, but may as well check)
+        self.assertRaises(TypeError, a.__setattr__, 'z', 10)
+        def test_function(obj,val):  
+            obj.z = val
+        self.assertRaises(TypeError, test_function, a, 10)
 
     # TODO add tests for everything else (probably with unittest and/or nose, once I learn those
 
