@@ -1,0 +1,45 @@
+#! /usr/bin/zsh
+### Just a shell around find - list all files newer than AGE days, in DIR.  
+# Ignores .* files and anything in .git directories.  Follows symbolic links.
+# -- Weronika Patena, oct 2011
+
+# USAGE:
+# check_new_files [DIR] [AGE] [TYPE]
+#   DIR is the directory to check - default current directory; a value of e expands to ~/experiments
+#   AGE is how many days to look back - default 7
+#   TYPE can be f for file or d for directory - default f, switch to d if you want a shorter list
+#       arguments can be given in any order - they're distinguished by type/value
+
+DIR=`pwd`
+AGE=7
+TYPE=f
+
+if [[ $#* > 3 ]]; then
+    echo "Error: can't pass more than three arguments! See file comment header for usage/info."
+    exit
+fi
+
+# arguments can be given in any order - they're distinguished by value:
+for i in $*; do
+    # a value of f or d is TYPE
+    if [[ $i = f || $i = d ]]; then
+        TYPE=$i
+    # a value that's a number is AGE
+    elif [[ $i = <-> ]]; then     # <-> matches any number of digits
+        AGE=$i
+    # any other value is DIR (and e means ~/experiments)
+    else
+        if [[ $i = e ]]; then
+            DIR=~/experiments
+        else
+            DIR=$i
+        fi
+    fi
+done
+
+echo '\t'DIR is $DIR
+echo '\t'AGE is $AGE
+echo '\t'TYPE is $TYPE
+
+# core functionality
+find -L $DIR -mtime -$AGE -type $TYPE -not -iname ".*" -not -path "*.git*"

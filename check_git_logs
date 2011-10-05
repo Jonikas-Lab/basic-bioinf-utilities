@@ -1,0 +1,57 @@
+#! /usr/bin/zsh
+### Find all git repositories in given directory (by .git folder; follows symbolic links), print their status and date/summary for N last commits.
+### Weronika Patena, oct 2011
+
+# USAGE:
+# check_git_logs [DIR] [N] [DATETYPE]
+#   DIR is the directory to check - default current directory; a value of e expands to ~/experiments
+#   N is the number of commits to list - default 3
+#   DATETYPE can be a for absolute date ("Oct 4 2011") or r for relative date ("3 days ago")
+#       arguments can be given in any order - they're distinguished by type/value
+
+DIR=`pwd`
+N=3
+DATETYPE=r
+
+if [[ $#* > 3 ]]; then
+    echo "Error: can't pass more than three arguments! See file comment header for usage/info."
+    exit
+fi
+
+# arguments can be given in any order - they're distinguished by value:
+for i in $*; do
+    # a value of a or r is DATETYPE
+    if [[ $i = a || $i = r ]]; then
+        DATETYPE=$i
+    # a value that's a number is N
+    elif [[ $i = <-> ]]; then     # <-> matches any number of digits
+        N=$i
+    # any other value is DIR (and e means ~/experiments)
+    else
+        if [[ $i = e ]]; then
+            DIR=~/experiments
+        else
+            DIR=$i
+        fi
+    fi
+done
+
+echo '\t'DIR is $DIR
+echo '\t'N is $N
+echo '\t'DATETYPE is $DATETYPE
+
+if [[ $DATETYPE = a ]]; then
+    FORMAT="  %aD - %s"
+else
+    FORMAT="  %ar - %s"
+fi
+
+# core functionality
+for i in `find -L $DIR -name '.git' -not -path "*ERILDA_shRNA*"`; do 
+    print '\n ***' $i ' ***'
+    cd $i[0,-5]
+    git status
+    git log -n$N --format="$FORMAT"
+    cd-
+done
+
