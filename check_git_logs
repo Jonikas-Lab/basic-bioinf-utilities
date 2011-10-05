@@ -48,10 +48,12 @@ fi
 
 # core functionality
 for i in `find -L $DIR -name '.git' -not -path "*ERILDA_shRNA*"`; do 
-    print '\n ***' $i ' ***'
-    cd $i[0,-5]
+    folder=$i[0,-5]
+    print '\n ***' $folder ' ***'
+    cd $folder
     git status
     git log -n$N --format="$FORMAT"
     cd-
 done
+# usage of cd- and such here depends on my ~/.alias file
 
