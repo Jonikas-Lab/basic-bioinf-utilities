@@ -1,5 +1,6 @@
 #! /usr/bin/zsh
-### Just a shell around find - list all files newer than AGE days, in DIR.  
+### List the paths of all files/directories in DIR edited AGE or fewer days ago (and modification times, for files).  
+# Prints the straight find output for directories; for files gets the modification time from ls -l (for directories that time doesn't seem to be anything sensible)
 # Ignores .* files and anything in .git directories.  Follows symbolic links.
 # -- Weronika Patena, oct 2011
 
@@ -41,5 +42,18 @@ echo '\t'DIR is $DIR
 echo '\t'AGE is $AGE
 echo '\t'TYPE is $TYPE
 
-# core functionality
-find -L $DIR -mtime -$AGE -type $TYPE -not -iname ".*" -not -path "*.git*"
+### core functionality
+# for directories, just print the find output straight - I 
+if [[ $TYPE = d ]]; then
+    find -L $DIR -mtime -$AGE -type $TYPE -not -iname ".*" -not -path "*.git*"
+# for files, get modification times from ls -l output, it's nicer-looking
+else
+    for i in `find -L $DIR -mtime -$AGE -type $TYPE -not -iname ".*" -not -path "*.git*"`;  do
+        line=`ls -ld $i`
+        line=`echo $line | sed 's/\/home\/weronika/  ~/'`
+        line=`echo $line | cut -d ' ' -f 6-`
+        echo $line
+    done
+fi
+# MAYBE-TODO try something like the above version for directories?  But the modification times reported by ls -ld can be very different from the modification time of containing files!
+
