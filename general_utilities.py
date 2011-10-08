@@ -12,15 +12,19 @@ from collections import defaultdict
 
 # list/dictionary/etc utilities
 
-def get_overlap_of_dictionaries(dict_list):
-    """ Given a list of dictionaries, return a similar new list with only the keys shared by all the dictionaries. """
+def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
+    """ Given a list of dictionaries, return a similar new list of dicts with only the keys shared by all the dictionaries.
+    Caution: returns a LIST OF DICTS, NOT a new dictionary that contains only the overlap! Easy to get confused."""
     # get the set of keys present in all dictionaries (set intersection)
+    if len(dict_list)==0:   return []
+    # generate list of keys that are in ALL dictionaries (starting from the list of the first one and reducing)
     overlap_keys = set(dict_list[0].keys())
     for d in dict_list:     overlap_keys &= set(d.keys())
     # make a new dictionary list
     new_dict_list = []
     for d in dict_list:     
-        new_dict_list.append(dict([(k,v) for (k,v) in d.iteritems() if k in overlap_keys]))
+        new_reduced_dict = dict([(k,v) for (k,v) in d.iteritems() if k in overlap_keys])
+        new_dict_list.append(new_reduced_dict)
     return new_dict_list
 
 def invert_list_to_dict(input_list):
@@ -94,6 +98,7 @@ def read_tab_separated_file(filename, ignore_comments=True):
             sys.exit("Error: Found line with %s columns, but first line had %s columns! (line %s)"%(len(fields), 
                                                                                                     len(data_list), line))
     return data_list
+    # TODO add to unit-tests? Or some kind of test.
 
 def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=True, all_values_are_numbers=False):
     """ Read a tab-separated file with column headers in the first line; ignore comment lines (starting with #) unless specified otherwise. Return a list of IDs from ID_column (in order), and a column_header:column_data dictionary, with one entry per non-ID column, where column_data is an ID:value dictionary with values taken from the column with that header."""
@@ -109,6 +114,7 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
         else:
             data_dict_by_header[colheader] = dict([(ID_list[i],column_data[i]) for i in range(len(column_data))])
     return ID_list, data_dict_by_header
+    # TODO add to unit-tests? Or some kind of test.
 
 
 ### Writing to files
@@ -127,6 +133,7 @@ def replaces_infile_with_outfile(function_to_be_decorated):
         return return_val
     return wrapped_function
     # MAYBE-TODO is the way I'm doing this decorator really the best?  Not bad, but requires adding the fake "outfile" argument to all the functions... If I was somehow the function_to_be_decorated's variable list directly instead (with f.__dict__ or f.__setattr__), that wouldn't be an issue... Ask on stackoverflow?
+    # TODO add to unit-tests? Or some kind of test.
 
 def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
     """ Given a list of lines, a filename, and an optional header, open file, write header and all lines, close. """
@@ -156,6 +163,7 @@ def clean_number(val,replace_NaN,replace_Inf,replace_NegInf,make_positive=False)
     elif isneginf(val):       return replace_NegInf
     elif make_positive and val<=0:  return replace_NegInf
     else:                           return val
+    # TODO add to unit-tests
 
 def clean_data(input_data,replace_NaN,replace_Inf=None,replace_NegInf=None,make_positive=False):
     """ Take a list/tuple/set/dict, return same with NaN/Inf/negative values replaced with the respective arguments. """
@@ -183,6 +191,7 @@ def clean_data(input_data,replace_NaN,replace_Inf=None,replace_NegInf=None,make_
     elif type(input_data)==tuple:   return tuple(new_list)
     elif type(input_data)==set:     return set(new_list)
     elif type(input_data)==dict:    return dict(zip(key_list,new_list))
+    # TODO add to unit-tests
 
 def clean_data_remove(input_data,remove_NaN=True,remove_Inf=True,remove_NegInf=True,remove_negative=False,remove_zero=False):
     """ Take a list/tuple/set/dict, return same with NaN/Inf/NegInfo/negative values removed accordint to arguments. """
@@ -205,6 +214,7 @@ def clean_data_remove(input_data,remove_NaN=True,remove_Inf=True,remove_NegInf=T
         return dict([(k,x) for (k,x) in input_data.iteritems() if not bad_value(x)])
     else:
         raise ValueError("input_data argument must be a list, tuple, set or dictionary")
+    # TODO add to unit-tests
 
 
 ### cutoffs, ranges, sets, etc 
@@ -218,6 +228,7 @@ def parse_cutoffs_into_ranges(cutoff_list, if_overlapping):
         ranges.append((cutoff_list[i],cutoff_list[i+1]))
     ranges.append((cutoff_list[-1],float('inf')))
     return ranges
+    # TODO add to unit-tests
 
 def get_sets_from_cutoffs(value_dict, value_ranges):
     """ Given a (name:val) dictionary and a list of (min,max) value ranges, return a (range:names_in_range) dict. """
@@ -225,6 +236,7 @@ def get_sets_from_cutoffs(value_dict, value_ranges):
     for (vmin,vmax) in value_ranges:
         ranges_to_sets[(vmin,vmax)] = [name for (name,val) in value_dict.items() if val>=vmin and val<vmax]
     return ranges_to_sets
+    # TODO add to unit-tests
 
 
 ### moving average and moving median, plus some help functions (anything starting with _ won't be imported)
@@ -253,6 +265,7 @@ def moving_average(data,window_size=10,return_indices=False):
         average_values.append(new_average)
     if return_indices:  return average_values, _make_window_indices(data,window_size)
     else:               return average_values 
+    # TODO add to unit-tests
 
 
 def moving_median(data,window_size=10,return_indices=False):
@@ -267,6 +280,7 @@ def moving_median(data,window_size=10,return_indices=False):
         median_values.append(median(data[i:i+window_size]))
     if return_indices:  return median_values, _make_window_indices(data,window_size)
     else:               return median_values 
+    # TODO add to unit-tests
 
 
 def plot_function_by_window_size(data,window_size_list,function,figsize=(),title='',xlabel='',xlim=None,ylim=None,yticks=None,ylabel=''):
@@ -286,6 +300,7 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
         if yticks:  mplt.yticks(yticks[0],yticks[1] if len(yticks)>1 else yticks[0])
         if ylabel:  mplt.ylabel(ylabel%window_size)
     return fig
+    # TODO how would one even test this?
 
 
 ### Useful class mix-ins
@@ -319,7 +334,7 @@ class FrozenClass(object):
 
     
 
-### Convert data into linlog scale (slightly weird, for plotting)
+### Convert data into linlog scale (slightly weird, for plotting) - OLD CODE, STILL IN PROGRESS, will pick it back up if it's needed for anything.
 # for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
 #  if cutoff=100, what we want is: 1->1, 2->2, 5->5, 10->10, 50->50, 100->100, 1000->200, 10000->300, 100000->400, ...
 #  if cutoff=1, what we want is: 1->1, 10->2, 100->3, 1000->4, ...
@@ -346,29 +361,42 @@ def convert_data_to_linlog(dataset,cutoff=10):
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
 
-    def test_invert_list_to_dict(self):
+    def test__reduce_dicts_to_overlaps(self):
+        d1 = {1:1}
+        d2 = {1:2, 2:2}
+        d3 = {2:3, 3:3}
+        print reduce_dicts_to_overlaps([d1,d2])
+        assert reduce_dicts_to_overlaps([d1,d2]) == [{1:1},{1:2}] 
+        assert reduce_dicts_to_overlaps([d2,d3]) == [{2:2},{2:3}] 
+        assert reduce_dicts_to_overlaps([d1,d3]) == [{},{}] 
+        assert reduce_dicts_to_overlaps([d1,d2,d3]) == [{},{},{}] 
+        assert reduce_dicts_to_overlaps([]) == [] 
+
+    def test__invert_list_to_dict(self):
         assert invert_list_to_dict([]) == {}
         assert invert_list_to_dict([10,12,11]) == {10:0, 12:1, 11:2}
+        assert invert_list_to_dict(['a',None,11]) == {'a':0, None:1, 11:2}
         self.assertRaises(ValueError, invert_list_to_dict, [10,11,10])
+        self.assertRaises(ValueError, invert_list_to_dict, [None,None])
 
-    def test_invert_dict_nodups(self):
+    def test__invert_dict_nodups(self):
         assert invert_dict_nodups({}) == {}
         assert invert_dict_nodups({1:2,3:4}) == {2:1,4:3}
         self.assertRaises(ValueError, invert_dict_nodups, {1:2,3:2})
 
-    def test_invert_dict_tolists(self):
+    def test__invert_dict_tolists(self):
         assert invert_dict_tolists({}) == {}
         assert invert_dict_tolists({1:2,3:4}) == {2:set([1]),4:set([3])}
         assert invert_dict_tolists({1:2,3:2}) == {2:set([1,3])}
 
-    def test_invert_listdict_tolists(self):
+    def test__invert_listdict_tolists(self):
         assert invert_listdict_tolists({}) == {}
         assert invert_listdict_tolists({1:[2],3:[4]}) == {2:set([1]),4:set([3])}
         assert invert_listdict_tolists({1:[2],3:[2]}) == {2:set([1,3])}
         assert invert_listdict_tolists({1:[2,4],3:[2]}) == {2:set([1,3]),4:set([1])}
         self.assertRaises(ValueError, invert_dict_nodups, {1:2,3:2})
 
-    def test_keybased_defaultdict(self):
+    def test__keybased_defaultdict(self):
         D_nodefault = keybased_defaultdict(None)
         self.assertRaises(KeyError, lambda: D_nodefault[1])
         D_constantdefault = keybased_defaultdict(lambda x: 0)
@@ -378,7 +406,7 @@ class Testing_everything(unittest.TestCase):
         assert D_variabledefault[1] == 2
         assert D_variabledefault[2] == 4
 
-    def test_FrozenClass(self):
+    def test__FrozenClass(self):
         class Test_freezing(FrozenClass):
             def __init__(self, x, y):
                 self.x = x
@@ -396,7 +424,7 @@ class Testing_everything(unittest.TestCase):
             obj.z = val
         self.assertRaises(TypeError, test_function, a, 10)
 
-    # TODO add tests for everything else (probably with unittest and/or nose, once I learn those
+    # TODO add tests for everything else
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
