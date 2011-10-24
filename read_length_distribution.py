@@ -50,7 +50,7 @@ def read_length_distribution(infiles,include_zeros=False,verbose=1):
                 sys.exit("Error: input file %s is not recognized as either fasta or fastq. \
                          \n\tFasta error message: %s \n\tFastq error message: %s"\
                          %(infile,fasta_error_msg,fastq_error_msg))
-    print_lengths(readlen_counter,include_zeros)
+    print_lengths(readlen_counter,include_zeros,verbose)
             
 
 if __name__ == "__main__":
