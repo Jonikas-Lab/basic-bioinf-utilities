@@ -17,22 +17,27 @@ def get_lengths(file_iterator,readlen_counter):
         total_count += 1
     return total_count
 
-def print_lengths(readlen_counter, include_zeros=False, verbose=1, OUTPUT=None):
-    """ Given a length:readcount dictionary, print it prettily to stdout. """
-    if OUTPUT is None:  OUTPUT = sys.stdout
+def format_lengths(readlen_counter, include_zeros=False, verbose=1):
+    """ Given a length:readcount dictionary, format it for printing. """
+    output_lines = []
     lengths = readlen_counter.keys()
     if include_zeros:   lengths = range(min(lengths),max(lengths)+1)
     else:               lengths.sort()
-    if verbose>0:     OUTPUT.write("length\tread count\n")
+    if verbose>0:     
+        output_lines.append("length\tread count\n")
     for l in lengths:
-        OUTPUT.write("%s\t%s\n"%(l,readlen_counter[l]))
-    if verbose>0:     OUTPUT.write("Total %s reads\n"%sum(readlen_counter.values()))
+        output_lines.append("%s\t%s\n"%(l,readlen_counter[l]))
+    if verbose>0:     
+        output_lines.append("Total %s reads\n"%sum(readlen_counter.values()))
+    return output_lines
 
-def read_length_distribution(infiles, include_zeros=False, verbose=1, OUTPUT=None):
-    """ Main program: Given a list of fastq/fasta files, print a list of read lengths and counts."""
-    if OUTPUT is None:  OUTPUT = sys.stdout
+def read_length_distribution(infiles, include_zeros=False, verbose=1, OUTPUT=sys.stdout):
+    """ Main program: Given a list of fastq/fasta files, return and print a list of read lengths and counts.
+    Prints to stdout by default; to print to file, pass open file object as OUTPUT; to suppress printing, pass None."""
     # a counter with a default value of 0
     readlen_counter = defaultdict(lambda: 0)
+    formatted_output = []
+    # add the numbers from each file to readlen_counter (using HTSeq, which auto-detects filetype etc)
     for infile in infiles:
         # FILETYPE RECOGNITION: first try Fasta: if it works, good. If it fails with some random error, raise it. 
         #   If it fails with a "file isn't fasta" exception, try fastq.  If fastq failse with some random error, raise it.
@@ -41,18 +46,24 @@ def read_length_distribution(infiles, include_zeros=False, verbose=1, OUTPUT=Non
         #   (so I have to actually run get_lengths inside this try/except, instead of just defining the reader)
         try:    
             total_count = get_lengths(FastaReader(infile),readlen_counter)
-            if verbose>1: OUTPUT.write("File %s recognized as fasta, with %s total reads.\n"%(infile,total_count))
+            if verbose>1: 
+                formatted_output.append("File %s recognized as fasta, with %s total reads.\n"%(infile,total_count))
         except (ValueError,AssertionError) as fasta_error_msg:
             if not str(fasta_error_msg).count("FASTA file does not start with"):  raise 
             try:    
                 total_count = get_lengths(FastqReader(infile,qual_scale="solexa"),readlen_counter)
-                if verbose>1: OUTPUT.write("File %s recognized as fastq, with %s total reads.\n"%(infile,total_count))
+                if verbose>1: 
+                    formatted_output.append("File %s recognized as fastq, with %s total reads.\n"%(infile,total_count))
             except (ValueError,AssertionError) as fastq_error_msg:
                 if not str(fastq_error_msg).count("this is not FASTQ data"):   raise
                 sys.exit("Error: input file %s is not recognized as either fasta or fastq. \
                          \n\tFasta error message: %s \n\tFastq error message: %s"\
                          %(infile,fasta_error_msg,fastq_error_msg))
-    print_lengths(readlen_counter,include_zeros,verbose,OUTPUT)
+    # format and print (optionally) and return the output
+    formatted_output += format_lengths(readlen_counter,include_zeros,verbose)
+    if not OUTPUT is None:
+        for line in formatted_output:   OUTPUT.write(line)
+    return formatted_output
             
 
 if __name__ == "__main__":
