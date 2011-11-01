@@ -7,10 +7,14 @@ Weronika Patena, 2010-2011
 
 from __future__ import division 
 import sys, os
-import unittest
+import subprocess
 from collections import defaultdict
+import unittest
 
-# list/dictionary/etc utilities
+
+######################################## STRUCTURES / CLASSES / ETC ########################################
+
+### list/dictionary/etc utilities
 
 def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
     """ Given a list of dictionaries, return a similar new list of dicts with only the keys shared by all the dictionaries.
@@ -69,6 +73,38 @@ class keybased_defaultdict(defaultdict):
             value = self[key] = self.default_factory(key)
             return value
 
+### Useful class mix-ins
+
+class FrozenClass(object):
+    """ Class that allows prevention of adding new attributes after creation.
+    Use by inheriting from this, and then running self._freeze() at the end of __init__, like this:
+        class Test_freezing(FrozenClass):
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                self._freeze() # no new attributes after this point.
+        a = Test_freezing(2,3)
+        a.x = 10    # can modify existing attributes after creation
+        a.z = 10    # fails - cannot add NEW atributes after creation
+    """
+    # by Jochen Ritzel on Stackoverflow 
+    #   (http://stackoverflow.com/questions/3603502/prevent-creating-new-attributes-outside-init)
+    # This has to be a new-style class (i.e. inheriting from object), old-style classes don't seem to have __setattr__?
+
+    __isfrozen = False
+
+    def __setattr__(self, key, value):
+        if self.__isfrozen and not hasattr(self, key):
+            raise TypeError( "%r is a frozen class" % self )
+        object.__setattr__(self, key, value)
+    
+    def _freeze(self):
+        self.__isfrozen = True
+
+# MAYBE-TODO could/should these be done as a decorators instead?
+
+    
+######################################## FILE READING/WRITING, COMMAND-LINE STUFF  ########################################
 
 ### Read various file types
 
@@ -152,6 +188,35 @@ def write_header_data(OUTFILE,options=None):
                                                               socket.gethostname()))
     if options:     OUTFILE.write("# Full options: %s\n"%options)
 
+def print_text_from_file(infile, OUTFILE=None, printing=True, add_newlines=0):
+    """ Write all text from infile to OUTFILE (if not None), also print to stdout if printing is set. 
+    Return line counts.  Infile should be a filename; OUTFILE should be an open file object. """
+    line_count = 0
+    for line in open(infile):
+        if OUTFILE is not None:     OUTFILE.write(line)
+        if printing:                print line,
+        line_count += 1
+    if add_newlines:
+        if OUTFILE is not None:     OUTFILE.write('\n'*add_newlines)
+        if printing:                print '\n'*add_newlines,
+    return line_count
+
+
+### Command/line utilities (running processes, getting output, etc)
+
+def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True, program_name=None):
+    """ Run command using subprocess.call; first print a line describing that to LOGFILE and/or stdout.
+    The shell arg to subprocess.call is given by shell; LOGFILE should be an open file object; 
+    program_name is only used for printing, and the first word of the command will be used by default. """
+    if program_name is None:
+        program_name = command.split(' ')[0]
+    output = "### Running %s: %s"%(program_name, command)
+    if LOGFILE is not None:     LOGFILE.write(output+'\n')
+    if printing:                print output
+    subprocess.call([command], shell=shell)
+
+
+######################################## NUMERIC DATA MANIPULATION ########################################
 
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
 
@@ -303,36 +368,6 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
     # TODO how would one even test this?
 
 
-### Useful class mix-ins
-# MAYBE-TODO could/should these be done as a decorators instead?
-
-class FrozenClass(object):
-    """ Class that allows prevention of adding new attributes after creation.
-    Use by inheriting from this, and then running self._freeze() at the end of __init__, like this:
-        class Test_freezing(FrozenClass):
-            def __init__(self, x, y):
-                self.x = x
-                self.y = y
-                self._freeze() # no new attributes after this point.
-        a = Test_freezing(2,3)
-        a.x = 10    # can modify existing attributes after creation
-        a.z = 10    # fails - cannot add NEW atributes after creation
-    """
-    # by Jochen Ritzel on Stackoverflow 
-    #   (http://stackoverflow.com/questions/3603502/prevent-creating-new-attributes-outside-init)
-    # This has to be a new-style class (i.e. inheriting from object), old-style classes don't seem to have __setattr__?
-
-    __isfrozen = False
-
-    def __setattr__(self, key, value):
-        if self.__isfrozen and not hasattr(self, key):
-            raise TypeError( "%r is a frozen class" % self )
-        object.__setattr__(self, key, value)
-    
-    def _freeze(self):
-        self.__isfrozen = True
-
-    
 
 ### Convert data into linlog scale (slightly weird, for plotting) - OLD CODE, STILL IN PROGRESS, will pick it back up if it's needed for anything.
 # for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
@@ -357,6 +392,9 @@ def convert_data_to_linlog(dataset,cutoff=10):
 # the fuctions is mplt.yticks([0,1,2,5,10,20,30,40],['0','1','2','5','10','100','1000','10000'])
 # TODO maybe put a transition mark where the scale changes from lin to log?
 
+
+
+######################################## TESTS FOR THIS FILE ########################################
 
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
