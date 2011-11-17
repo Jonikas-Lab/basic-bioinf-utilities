@@ -16,6 +16,14 @@ from reverse_complement import reverse_complement
 # reverse a sequence:
 from reverse import reverse
 
+### some constants 
+
+SEQ_ENDS = ['5prime','3prime']
+SEQ_STRANDS = ['+','-']
+SEQ_DIRECTIONS = ['forward','reverse']
+SEQ_ORIENTATIONS = ['sense','antisense']
+
+
 ### some help functions I'm just going to write here... ###
 
 def find_seq_between(seq, flankA, flankB, exclusive=True):
