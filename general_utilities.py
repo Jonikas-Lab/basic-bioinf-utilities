@@ -16,6 +16,14 @@ import unittest
 
 ### list/dictionary/etc utilities
 
+def compare_lists_unordered(list1,list2):
+    """ Given two lists, return True if they contain the same elements, False otherwise.
+    The same could be done with bool(set(list1)==set(list2)), except when list elements are unhashable. """
+    if len(list1)!=len(list2):  return False
+    for x in list1:
+        if x not in list2:      return False
+    return True
+
 def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
     """ Given a list of dictionaries, return a similar new list of dicts with only the keys shared by all the dictionaries.
     Caution: returns a LIST OF DICTS, NOT a new dictionary that contains only the overlap! Easy to get confused."""
@@ -368,6 +376,19 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
     # TODO how would one even test this?
 
 
+### Other specialized functions 
+
+def split_into_N_sets_by_counts(ID_counts, N):
+    """ Given an ID:count dictionary, return a list of sets of IDs with total counts balanced between the sets. """
+    # make a sorted (high to low) list of (count,ID) tuples
+    counts_IDs = sorted([(count,ID) for (ID,count) in ID_counts.iteritems()], reverse=True)
+    output_counts_sets = [[0,set()] for i in range(N)]
+    # now go over all IDs, adding an ID (and the corresponding count) to the smallest set each time
+    for (count,ID) in counts_IDs:
+        output_counts_sets[0][1].add(ID)
+        output_counts_sets[0][0] += count
+        output_counts_sets.sort()
+    return [ID_set for [count,ID_set] in output_counts_sets]
 
 ### Convert data into linlog scale (slightly weird, for plotting) - OLD CODE, STILL IN PROGRESS, will pick it back up if it's needed for anything.
 # for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
@@ -399,11 +420,23 @@ def convert_data_to_linlog(dataset,cutoff=10):
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
 
+    def test__compare_lists_unordered(self):
+        from itertools import permutations
+        for input_list in [[1,2,3], [True,False,True], ['a','bb',''], [1,True,'str',321314,None]]:
+            assert compare_lists_unordered(input_list, input_list) == True
+            assert compare_lists_unordered(input_list, input_list*2) == False
+            assert compare_lists_unordered(input_list, []) == False
+            for permuted_list in permutations(input_list, len(input_list)):
+                assert compare_lists_unordered(input_list, permuted_list) == True
+                assert compare_lists_unordered(input_list, permuted_list[:-1]) == False
+                assert compare_lists_unordered(input_list[:-1], permuted_list) == False
+            for permuted_list in permutations(input_list, len(input_list)-1):
+                assert compare_lists_unordered(input_list, permuted_list) == False
+
     def test__reduce_dicts_to_overlaps(self):
         d1 = {1:1}
         d2 = {1:2, 2:2}
         d3 = {2:3, 3:3}
-        print reduce_dicts_to_overlaps([d1,d2])
         assert reduce_dicts_to_overlaps([d1,d2]) == [{1:1},{1:2}] 
         assert reduce_dicts_to_overlaps([d2,d3]) == [{2:2},{2:3}] 
         assert reduce_dicts_to_overlaps([d1,d3]) == [{},{}] 
@@ -461,6 +494,39 @@ class Testing_everything(unittest.TestCase):
         def test_function(obj,val):  
             obj.z = val
         self.assertRaises(TypeError, test_function, a, 10)
+
+    def test__split_into_N_sets_by_counts(self):
+
+        input1 = {'a':1000}
+        for N in range(1,10):
+            assert compare_lists_unordered(split_into_N_sets_by_counts(input1,N), 
+                                           [set(['a'])] + [set() for i in range(N-1)])
+
+        input2 = {'a':1002, 'b':1001, 'c':1000}
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input2,1), [set(['a','b','c'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input2,2), [set(['a']),set(['b','c'])])
+        for N in range(3,10):
+            assert compare_lists_unordered(split_into_N_sets_by_counts(input2,N), 
+                                           [set(['a']), set(['b']), set(['c'])] + [set() for i in range(N-3)])
+
+        input3 = {'a':5, 'b':4, 'c':3, 'd':2, 'e':1}
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,1), [set(['a','b','c','d','e'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,2), [set(['a','d','e']), set(['b','c'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,3), [set(['a']), set(['b','e']), set(['c','d'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,4), 
+                                       [set(['a']), set(['b']), set(['c']), set(['d','e'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,5), 
+                                       [set(['a']), set(['b']), set(['c']), set(['d']), set(['e'])])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,6), 
+                                       [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set()])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,7), 
+                                       [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set(), set()])
+        assert compare_lists_unordered(split_into_N_sets_by_counts(input3,8), 
+                                       [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set(), set(), set()])
+
+
+
+
 
     # TODO add tests for everything else
 
