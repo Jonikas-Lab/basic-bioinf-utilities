@@ -7,17 +7,14 @@ Weronika Patena, 2008-2010
 
 ### basic library
 import unittest
-
 ### my modules
-# help_functions.
+# help functions
 from parse_fasta import parse_fasta,print_seq
 from read_input import read_input
 from transform_sequence_input import transform_sequence_input
-# complement a sequence:
+# independently useful functions
 from complement import complement
-# reverse-complement a sequence:
 from reverse_complement import reverse_complement
-# reverse a sequence:
 from reverse import reverse
 
 ### some constants 
@@ -83,6 +80,7 @@ def generate_seq_slices(gene_seq,slice_len,slice_step):
         yield len(gene_seq)-slice_len, gene_seq[-slice_len:]
 
 
+####################################### Unit-tests #########################################
 
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
