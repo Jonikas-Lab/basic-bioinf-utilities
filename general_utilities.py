@@ -39,6 +39,14 @@ def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
         new_dict_list.append(new_reduced_dict)
     return new_dict_list
 
+def count_list_values(input_list):
+    """ Given a list, return a value:number_of_times_value_occurred_in_list dictionary. """
+    value_counts = defaultdict(lambda: 0)
+    for value in input_list:
+        value_counts[value] += 1
+    return dict(value_counts)
+    # Note: this is basically a very simplified version of collections.Counter - which was only added in python 2.7, and I'm still on 2.6, so I can't use it for now.  Should switch to that once I'm on 2.7 though.. 
+
 def invert_list_to_dict(input_list):
     """ Given a list with no duplicates, return a dict mapping the values to list positions: [a,b,c] -> {a:1,b:2,c:3}."""
     if not len(set(input_list)) == len(input_list):
@@ -442,6 +450,15 @@ class Testing_everything(unittest.TestCase):
         assert reduce_dicts_to_overlaps([d1,d3]) == [{},{}] 
         assert reduce_dicts_to_overlaps([d1,d2,d3]) == [{},{},{}] 
         assert reduce_dicts_to_overlaps([]) == [] 
+
+    def test__count_list_values(self):
+        assert count_list_values([]) == {}
+        assert count_list_values([10,12,11]) == {10:1, 12:1, 11:1}
+        assert count_list_values([10,12,10]) == {10:2, 12:1}
+        assert count_list_values([1]*100) == {1:100}
+        assert count_list_values(['a',None,11]) == {'a':1, None:1, 11:1}
+        assert count_list_values([None,None]) == {None:2}
+
 
     def test__invert_list_to_dict(self):
         assert invert_list_to_dict([]) == {}
