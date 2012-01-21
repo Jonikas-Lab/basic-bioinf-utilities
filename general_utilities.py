@@ -141,7 +141,7 @@ def read_tab_separated_file(filename, ignore_comments=True):
     """ Read in a tab-separated file (ignore #-comment lines), return a list for each column. """
     for line in open(filename):
         if ignore_comments and line[0]=='#':    continue
-        fields = line.strip().split('\t')
+        fields = line.strip('\n').split('\t')
         try:
             for i in range(len(fields)): data_list[i].append(fields[i])
         except NameError:
