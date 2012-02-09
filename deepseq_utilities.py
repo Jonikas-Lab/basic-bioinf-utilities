@@ -10,6 +10,33 @@ import unittest
 
 ################## fasta/fastq (raw data) utilities ################## 
 
+def parse_fastq(infile):
+    """ Given a fastq file, yield successive (header,sequence,quality) tuples. """
+    with open(infile) as INFILE:
+        while True:
+            header = INFILE.next().strip()
+            try:
+                seq = INFILE.next().strip()
+                header2 = INFILE.next().strip()
+                qual = INFILE.next().strip()
+            except (StopIteration):
+                raise Exception("Input FastQ file is malformed! Last record didn't have all four lines!")
+
+            if not header[0]=='@':  
+                raise Exception("Malformed input fastq file! Expected seq-header line (@ start), found %s"%header)
+            if not header2[0]=='+':  
+                raise Exception("Malformed input fastq file! Expected qual-header line (+ start), found %s"%header2)
+            header,header2 = header[1:],header2[1:]
+            if not (len(header2)==0 or header==header2):   
+                raise Exception("Malformed input fastq file! Qual-header %s doesn't match seq-header %s"%(header2,header))
+            if not len(seq)==len(qual):             
+                raise Exception("Malformed input fastq file! Seq length doesn't match qual length (%s,%s)"%(seq, qual))
+
+            yield (header, seq, qual)
+
+    # TODO add unit-test?
+
+
 def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
     """ Given a sequence header from fastx_collapser, return the original sequence count ('>1-243' means 243 sequences).
     If cannot parse the header, exits with an error message, unless return_1_on_failure is True (then returns 1). """
