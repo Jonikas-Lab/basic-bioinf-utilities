@@ -15,17 +15,9 @@ from HTSeq import FastaReader, FastqReader
 from seq_count_and_lengths import _format_lengths
 
 
-def seq_split_by_length(infile, min_length=None, max_length=None, include_empty_files=False, 
+def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_output=False, include_empty_files=False, 
                         input_collapsed_to_unique=False, verbosity=1):
-    """ Given one fasta or fastq file, split the sequences by length. 
-    Output a folder matching the input filename (no extension), containing files named <original_filename>_20bp.fa etc.
-    The file type is detected automatically, using the HTSeq library FastaReader/FastqReader methods.
-    Arguments:
-     * min_length - output all sequences shorter than X to a shorter.fa file.
-     * max_length - output all sequences longer than Y to a longer.fa file.
-     * include_empty_files - also output (empty) files for lengths with no sequences with lengths between min and max in order not to have files missing from the range. If min_length/max_length are set, these will be taken as min/max; otherwise the actual minimum and maximum encountered sequence lengths will be used.
-     * verbosity - verbosity level; print nothing to stdout if 0.
-    """
+    """ See module docstring and optparse option help messages - avoiding duplication. """
     # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
     fasta_extensions = ['fa','fasta']
     fastq_extensions = ['fq','fastq']
@@ -36,6 +28,9 @@ def seq_split_by_length(infile, min_length=None, max_length=None, include_empty_
         infile_reader = FastqReader(infile,qual_scale="solexa")
     else:       sys.exit("Error: input file %s (extension %s) needs to have a %s extension to be recognized!"%(infile, 
                             extension, '/'.join(fasta_extensions+fastq_extensions)))
+
+    if force_fasta_output:
+        extension = 'fa'
 
     ### make the output folder, and outfiles
     infile_base = os.path.splitext(infile)[0]
@@ -54,13 +49,13 @@ def seq_split_by_length(infile, min_length=None, max_length=None, include_empty_
         N_seqs = get_seq_count_from_collapsed_header(seq.name) if input_collapsed_to_unique else 1
         seq_counter[seqlen] += N_seqs
         # special length cases for when min/max length is set
-        if min_length is not None and seqlen<min_length:    seqlen = 'lower'
-        elif max_length is not None and seqlen>max_length:  seqlen = 'higher'
+        if min_length is not None and seqlen<min_length:    seqlen = 'under%s'%min_length
+        elif max_length is not None and seqlen>max_length:  seqlen = 'over%s'%max_length
         # make sure the output file for that length is open
         if seqlen not in len_to_outfile_dict.keys():
-            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder, "%s_%s.%s"%(infile_base,seqlen,extension)),'w')
+            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder, "%s_%spb.%s"%(infile_base,seqlen,extension)),'w')
         # write the sequence (fasta or fastq!) to the outfile!
-        if extension in fasta_extensions:
+        if force_fasta_output or extension in fasta_extensions:
             seq.write_to_fasta_file(len_to_outfile_dict[seqlen])
         else:
             seq.write_to_fastq_file(len_to_outfile_dict[seqlen])
@@ -89,11 +84,13 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(__doc__)
     parser.add_option('-m','--min_length', type='int', default=None, metavar='X',
-                      help="Output all sequences shorter than X to a shorter.fa file (default %default).")
+                      help="Output all sequences shorter than X to a underXbp.fa file (default %default).")
     parser.add_option('-M','--max_length', type='int', default=None, metavar='Y',
-                      help="Output all sequences longer than Y to a longer.fa file (default %default).")
+                      help="Output all sequences longer than Y to a overYbp.fa file (default %default).")
+    parser.add_option('-a','--force_fasta_output', action='store_true', default=False, 
+                      help="Output fasta files even if input was fastq (default %default).")
     parser.add_option('-e','--include_empty_files', action='store_true', default=False, 
-                      help="Also output (empty) files for lengths with no sequences with lengths between min and max in order not to have files missing from the range. If -m/-M were set, these will be taken as min/max; otherwise the actual minimum and maximum encountered sequence lengths will be used.")
+                      help="Also output (empty) files for lengths with no sequences with lengths between min and max in order not to have files missing from the range. If -m/-M were set, these will be taken as min/max; otherwise the actual minimum and maximum encountered sequence lengths will be used. (default %default)")
     parser.add_option('-c','--input_collapsed_to_unique', action='store_true', default=False, 
                       help="For seq totals printed to stdout only - use this to get correct total counts if the infile was collapsed to unique sequences using fastx_collapser, with original sequence counts encoded in the headers (a '>2-572' header means there were 572 identical sequences); default %default).")
     # -v and -q modify the same variable (verbosity) - default 1, -v makes it 2, -q makes it 0.
@@ -106,4 +103,4 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit("\nError: Exactly one input file required.")
 
-    seq_split_by_length(infile, options.min_length, options.max_length, options.include_empty_files, options.input_collapsed_to_unique, options.verbosity)
+    seq_split_by_length(infile, options.min_length, options.max_length, options.force_fasta_output, options.include_empty_files, options.input_collapsed_to_unique, options.verbosity)
