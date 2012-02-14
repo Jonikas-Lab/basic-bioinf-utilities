@@ -13,6 +13,7 @@ from collections import defaultdict
 from HTSeq import FastaReader, FastqReader
 # my modules
 from seq_count_and_lengths import _format_lengths
+from deepseq_utilities import get_seq_count_from_collapsed_header
 
 
 def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_output=False, include_empty_files=False, 
