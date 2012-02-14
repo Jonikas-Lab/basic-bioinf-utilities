@@ -16,7 +16,7 @@ from seq_count_and_lengths import _format_lengths
 
 
 def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_output=False, include_empty_files=False, 
-                        input_collapsed_to_unique=False, verbosity=1):
+                        ignore_zero_length_sequences=False, input_collapsed_to_unique=False, quiet=False):
     """ See module docstring and optparse option help messages - avoiding duplication. """
     # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
     fasta_extensions = ['fa','fasta']
@@ -48,6 +48,8 @@ def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_ou
         # add the N_seqs to the seq counter
         N_seqs = get_seq_count_from_collapsed_header(seq.name) if input_collapsed_to_unique else 1
         seq_counter[seqlen] += N_seqs
+        if ignore_zero_length_sequences and seqlen==0:
+            continue
         # special length cases for when min/max length is set
         if min_length is not None and seqlen<min_length:    seqlen = 'under%s'%min_length
         elif max_length is not None and seqlen>max_length:  seqlen = 'over%s'%max_length
@@ -73,8 +75,11 @@ def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_ou
         FILE.close()
 
     # format and print the seq counts by length
-    if verbosity:
-        for line in _format_lengths(seqlen_dict, include_zeros, 1):     print(line)
+    if not quiet:
+        if 0 in seq_counter.keys() and ignore_zero_length_sequences:
+            print "(discarding zero-length sequences)"
+        for line in _format_lengths(seq_counter, include_empty_files, 1):     
+            print(line),
             
 
 # MAYBE-TODO should this have unit-tests?
@@ -91,11 +96,12 @@ if __name__ == "__main__":
                       help="Output fasta files even if input was fastq (default %default).")
     parser.add_option('-e','--include_empty_files', action='store_true', default=False, 
                       help="Also output (empty) files for lengths with no sequences with lengths between min and max in order not to have files missing from the range. If -m/-M were set, these will be taken as min/max; otherwise the actual minimum and maximum encountered sequence lengths will be used. (default %default)")
+    parser.add_option('-z','--ignore_zero_length_sequences', action='store_true', default=False, 
+                      help="Discard zero-length sequences instead of outputting to a file. (default %default)")
     parser.add_option('-c','--input_collapsed_to_unique', action='store_true', default=False, 
                       help="For seq totals printed to stdout only - use this to get correct total counts if the infile was collapsed to unique sequences using fastx_collapser, with original sequence counts encoded in the headers (a '>2-572' header means there were 572 identical sequences); default %default).")
-    # -v and -q modify the same variable (verbosity) - default 1, -v makes it 2, -q makes it 0.
-    parser.add_option('-q','--quiet', action='store_const', const=0, dest="verbosity", 
-                      help="Don't print anything to stdout (default off).")
+    parser.add_option('-q','--quiet', action='store_true', default=False,
+                      help="Don't print anything to stdout (default %default).")
     (options, args) = parser.parse_args()
     try:
         [infile] = args
@@ -103,4 +109,4 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit("\nError: Exactly one input file required.")
 
-    seq_split_by_length(infile, options.min_length, options.max_length, options.force_fasta_output, options.include_empty_files, options.input_collapsed_to_unique, options.verbosity)
+    seq_split_by_length(infile, options.min_length, options.max_length, options.force_fasta_output, options.include_empty_files, options.ignore_zero_length_sequences, options.input_collapsed_to_unique, options.quiet)
