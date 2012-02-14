@@ -17,7 +17,8 @@ from deepseq_utilities import get_seq_count_from_collapsed_header
 
 
 def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_output=False, include_empty_files=False, 
-                        ignore_zero_length_sequences=False, input_collapsed_to_unique=False, quiet=False):
+                        ignore_zero_length_sequences=False, pad_filenames_for_sort=0, 
+                        input_collapsed_to_unique=False, quiet=False):
     """ See module docstring and optparse option help messages - avoiding duplication. """
     # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
     fasta_extensions = ['fa','fasta']
@@ -52,11 +53,15 @@ def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_ou
         if ignore_zero_length_sequences and seqlen==0:
             continue
         # special length cases for when min/max length is set
-        if min_length is not None and seqlen<min_length:    seqlen = 'under%s'%min_length
-        elif max_length is not None and seqlen>max_length:  seqlen = 'over%s'%max_length
-        # make sure the output file for that length is open
+        if min_length is not None and seqlen<min_length:    seqlen = min_length-1
+        elif max_length is not None and seqlen>max_length:  seqlen = max_length+1
+        # if outfile for that length doesn't exist, create it
         if seqlen not in len_to_outfile_dict.keys():
-            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder, "%s_%spb.%s"%(seqlen,extension)),'w')
+            seqlen_string = "%0*dbp"%(pad_filenames_for_sort, seqlen)
+            if min_length is not None and seqlen<min_length:    seqlen_string += '_or_less'
+            elif max_length is not None and seqlen>max_length:  seqlen_string += '_or_more'
+            filename = "%s.%s"%(seqlen_string,extension)
+            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder,filename), 'w')
         # write the sequence (fasta or fastq!) to the outfile!
         if force_fasta_output or extension in fasta_extensions:
             seq.write_to_fasta_file(len_to_outfile_dict[seqlen])
@@ -99,6 +104,9 @@ if __name__ == "__main__":
                       help="Also output (empty) files for lengths with no sequences with lengths between min and max in order not to have files missing from the range. If -m/-M were set, these will be taken as min/max; otherwise the actual minimum and maximum encountered sequence lengths will be used. (default %default)")
     parser.add_option('-z','--ignore_zero_length_sequences', action='store_true', default=False, 
                       help="Discard zero-length sequences instead of outputting to a file. (default %default)")
+    parser.add_option('-p','--pad_filenames_for_sort', type='int', default=2, metavar='P',
+                      help="Pad the seq lengths in filenames so they sort correctly (e.g. 01bp.fa instead of 1bp.fa) - "
+                          +"P is the number of digits to pad to (0 - no padding). (default %default).")
     parser.add_option('-c','--input_collapsed_to_unique', action='store_true', default=False, 
                       help="For seq totals printed to stdout only - use this to get correct total counts if the infile was collapsed to unique sequences using fastx_collapser, with original sequence counts encoded in the headers (a '>2-572' header means there were 572 identical sequences); default %default).")
     parser.add_option('-q','--quiet', action='store_true', default=False,
@@ -109,5 +117,6 @@ if __name__ == "__main__":
     except ValueError:
         parser.print_help()
         sys.exit("\nError: Exactly one input file required.")
+        # TODO make an optional second arg that's the outfolder name, otherwise use infile basename?
 
-    seq_split_by_length(infile, options.min_length, options.max_length, options.force_fasta_output, options.include_empty_files, options.ignore_zero_length_sequences, options.input_collapsed_to_unique, options.quiet)
+    seq_split_by_length(infile, options.min_length, options.max_length, options.force_fasta_output, options.include_empty_files, options.ignore_zero_length_sequences, options.pad_filenames_for_sort, options.input_collapsed_to_unique, options.quiet)
