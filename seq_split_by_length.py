@@ -56,7 +56,7 @@ def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_ou
         elif max_length is not None and seqlen>max_length:  seqlen = 'over%s'%max_length
         # make sure the output file for that length is open
         if seqlen not in len_to_outfile_dict.keys():
-            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder, "%s_%spb.%s"%(infile_base,seqlen,extension)),'w')
+            len_to_outfile_dict[seqlen] = open(os.path.join(outfolder, "%s_%spb.%s"%(seqlen,extension)),'w')
         # write the sequence (fasta or fastq!) to the outfile!
         if force_fasta_output or extension in fasta_extensions:
             seq.write_to_fasta_file(len_to_outfile_dict[seqlen])
