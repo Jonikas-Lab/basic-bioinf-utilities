@@ -47,6 +47,72 @@ def count_list_values(input_list):
     return dict(value_counts)
     # Note: this is basically a very simplified version of collections.Counter - which was only added in python 2.7, and I'm still on 2.6, so I can't use it for now.  Should switch to that once I'm on 2.7 though.. 
 
+def add_dicts_of_ints(dict1, dict2, recursive=False, 
+                      allow_nonconflicting_values=False, remove_nonallowed_values=False):
+    """ Add int-valued dicts together by adding the values: given {a:1, b:1} and {a:2, c:2}, return {a:3, b:1, c:2}. 
+
+    If recursive is True, if both dicts have another dict as a value for a given key, recursively apply 
+     add_dicts_of_ints to those values.
+    Normally only integer values are allowed (and possibly dictionary values, if recursive is True), and other values
+     cause a ValueError. If remove_nonallowed_values is True, other values are silently ignored instead; 
+     if allow_nonconflictiong_values is True, other values are kept if the key is only present in one dict
+      or if the value is the same in both dicts.
+    This uses explicit type checks for ints, not duck typing, sorry - don't want to add strings/lists/etc! 
+    """
+    # MAYBE-TODO add an argument that'd be a list of other types that should be treated like ints (i.e. added)?
+    keys_1_only = set(dict1.keys()) - set(dict2.keys())
+    keys_2_only = set(dict2.keys()) - set(dict1.keys())
+    keys_both = set(dict2.keys()) & set(dict1.keys())
+    new_dict = {}
+    ### for keys in both dicts:
+    for key in keys_both:
+        # if both values are ints, use their sum as new value
+        if type(dict1[key]) == type(dict2[key]) == int:
+            new_dict[key] = dict1[key] + dict2[key]
+        # if recursive is True and both values are dicts, run add_dicts_of_ints on them with same options for new value
+        elif recursive and type(dict1[key]) == type(dict2[key]) == dict:
+            new_dict[key] = add_dicts_of_ints(dict1[key], dict2[key], recursive=recursive, 
+                                              allow_nonconflicting_values=allow_nonconflicting_values, 
+                                              remove_nonallowed_values=remove_nonallowed_values)
+        # if allow_nonconflicting_values is True and both values are the same, use that for new value
+        elif allow_nonconflicting_values and dict1[key] == dict2[key]:
+            new_dict[key] = dict1[key]
+        # if the values aren't any of the above cases and remove_nonallowed_values is True:
+        elif remove_nonallowed_values:
+            # if one is an allowed type and the other isn't, keep the allowed one and ignore the other
+            #  (really the allowed one should just be moved to the keys_*_only set, in case further checking is needed)
+            if recursive:       allowed_types = [int,dict]
+            else:               allowed_types = [int]
+            if type(dict1[key]) in allowed_types and type(dict2[key]) not in allowed_types:
+                keys_1_only.add(key)
+            elif type(dict2[key]) in allowed_types and type(dict1[key]) not in allowed_types:
+                keys_2_only.add(key)
+            # otherwise (if neither are an allowed type, or both are but they're different, like int/dict) just ignore both
+            else:
+                continue
+        # otherwise raise exception
+        else:
+            raise ValueError("Encountered non-allowed value in one of the dictionaries! See docstring for options.")
+    ### for keys that are only in one of the dicts:
+    for key_set, curr_dict in [(keys_1_only, dict1), (keys_2_only, dict2)]:
+        for key in key_set:     
+            # copy ints to new_dict; if allow_nonconflicting_values is True, copy any values without checking
+            if allow_nonconflicting_values or type(curr_dict[key])==int:
+                new_dict[key] = curr_dict[key]
+            # if recursive is True and the value is a dict, apply add_dicts_of_ints to it and {} to get new value
+            elif recursive and type(curr_dict[key])==dict:
+                new_dict[key] = add_dicts_of_ints(curr_dict[key], {}, recursive=recursive, 
+                                                  allow_nonconflicting_values=allow_nonconflicting_values, 
+                                                  remove_nonallowed_values=remove_nonallowed_values)
+            # if the value isn't any of the above and remove_nonallowed_values is True, just ignore it
+            elif remove_nonallowed_values:
+                continue
+            # otherwise raise exception
+            else:
+                raise ValueError("Encountered non-allowed value in one of the dictionaries! See docstring for options.")
+    return new_dict
+
+
 def invert_list_to_dict(input_list):
     """ Given a list with no duplicates, return a dict mapping the values to list positions: [a,b,c] -> {a:1,b:2,c:3}."""
     if not len(set(input_list)) == len(input_list):
@@ -459,6 +525,106 @@ class Testing_everything(unittest.TestCase):
         assert count_list_values(['a',None,11]) == {'a':1, None:1, 11:1}
         assert count_list_values([None,None]) == {None:2}
 
+    def test__add_dicts_of_ints(self):
+        ### Basic int-value-only cases should be the same regardless of options
+        for recursive in True,False:
+            for allow_nonconflicting in True,False:
+                for remove_nonallowed in True,False:
+                    kwargs = {'recursive':recursive, 'allow_nonconflicting_values':allow_nonconflicting, 
+                              'remove_nonallowed_values':remove_nonallowed}
+                    for dict2 in [{}, {1:1}, {'a':1, 'b':100, 'c':-200}]:
+                        assert add_dicts_of_ints({}, dict2, **kwargs) == dict2
+                    assert add_dicts_of_ints({1:1}, {1:2}, **kwargs) == {1:3}
+                    assert add_dicts_of_ints({1.00:1}, {1.00:2}, **kwargs) == {1.00:3}
+                    assert add_dicts_of_ints({1:1}, {2:2}, **kwargs) == {1:1, 2:2}
+                    assert add_dicts_of_ints({'one':1}, {'two':2}, **kwargs) == {'one':1, 'two':2}
+                    assert add_dicts_of_ints({1:1, 2:1}, {2:2, 3:2}, **kwargs) == {1:1, 2:3, 3:2}
+                    assert add_dicts_of_ints({(1,):1, (2,):1}, {(2,):2, (3,):2}, **kwargs) == {(1,):1, (2,):3, (3,):2}
+        ### Simplest version - no recursion, no non-int values allowed: all "weird" cases raise exceptions 
+        kwargs = {'recursive':False, 'allow_nonconflicting_values':False, 'remove_nonallowed_values':False}
+        for bad_value in ['a', [], {}, {1:1}, {'a':1}, {1:'a'}, None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {}, **kwargs)
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {1:bad_value}, **kwargs)
+        # if nonallowed values are removed, exceptions aren't raised, the bad values are just ignored
+        kwargs = {'recursive':False, 'allow_nonconflicting_values':False, 'remove_nonallowed_values':True}
+        for bad_value in ['a', [], {}, {1:1}, {'a':1}, {1:'a'}, None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            # if there's only a bad value, or two of them, the result is empty
+            assert add_dicts_of_ints({1:bad_value}, {}, **kwargs) == {}
+            assert add_dicts_of_ints({1:bad_value}, {1:bad_value}, **kwargs) == {}
+            # same if there's also a good value for a different key - only that is kept
+            assert add_dicts_of_ints({1:bad_value}, {2:1}, **kwargs) == {2:1}
+            # if there's a bad and good value for the same key, only the good one is kept
+            assert add_dicts_of_ints({1:bad_value}, {1:1}, **kwargs) == {1:1}
+        ### Allowing recursion: 
+        kwargs = {'recursive':True, 'allow_nonconflicting_values':False, 'remove_nonallowed_values':False}
+        # still fails for non-dict "bad" values
+        for bad_value in ['a', [], {1:'a'}, None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {}, **kwargs)
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {1:bad_value}, **kwargs)
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {1:1}, **kwargs)
+        # if there's a dictionary-type value in one dictionary and nothing in the other, it's kept
+        for dict_value in [{}, {1:1}, {'a':1}]:
+            assert add_dicts_of_ints({1:dict_value}, {}, **kwargs) == {1:dict_value}
+        # if there's a dictionary-type value in both dictionaries, recursively add them up
+        assert add_dicts_of_ints({1:{}}, {1:{}}, **kwargs) == {1:{}}
+        assert add_dicts_of_ints({1:{1:1}}, {1:{1:1}}, **kwargs) == {1:{1:2}}
+        assert add_dicts_of_ints({1:{'a':1}}, {1:{'a':1}}, **kwargs) == {1:{'a':2}}
+        assert add_dicts_of_ints({1:1, 2:{2:2, 3:{3:3}}}, {}, **kwargs) == {1:1, 2:{2:2, 3:{3:3}}}
+        assert add_dicts_of_ints({1:1, 2:{2:2, 3:{3:3}}}, {1:1, 2:{}}, **kwargs) == {1:2, 2:{2:2, 3:{3:3}}}
+        assert add_dicts_of_ints({1:1, 2:{2:2, 3:{3:3}}}, {1:1, 2:{4:4}}, **kwargs) == {1:2, 2:{2:2, 3:{3:3}, 4:4}}
+        # if there's a dictionary-type value in one dictionary and an int in the other, raise an exception
+        for dict_value in [{}, {1:1}, {'a':1}]:
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:dict_value}, {1:1}, **kwargs)
+        self.assertRaises(ValueError, add_dicts_of_ints, {1:1, 2:{2:2, 3:{3:3}}}, {1:1, 2:1}, **kwargs)
+        ## if nonallowed values are removed, exceptions aren't raised: the bad values are just ignored
+        kwargs = {'recursive':True, 'allow_nonconflicting_values':False, 'remove_nonallowed_values':True}
+        # for bad values that don't involve dictionaries, the outcomes are the same as in the non-recursive version
+        for bad_value in ['a', [], None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            assert add_dicts_of_ints({1:bad_value}, {}, **kwargs) == {}
+            assert add_dicts_of_ints({1:bad_value}, {1:bad_value}, **kwargs) == {}
+            assert add_dicts_of_ints({1:bad_value}, {2:1}, **kwargs) == {2:1}
+            assert add_dicts_of_ints({1:bad_value}, {1:1}, **kwargs) == {1:1}
+        # if the two values are mismatched but they're both "good" (like an int and a dict), both are ignored
+        for dict_value in [{}, {1:1}, {'a':1}]:
+            assert add_dicts_of_ints({1:dict_value}, {1:1}, **kwargs) == {}
+        assert add_dicts_of_ints({1:1, 2:{2:2, 3:{3:3}}}, {1:1, 2:1}, **kwargs) == {1:2}
+        ## another special case: if a value is a dictionary but it's weird, it gets recursively passed down:
+        #   if remove_nonallowed_values is False, that leads to a ValueError a level later (which was tested above), 
+        #   but if it's True, it leads to the dictionary being kept in an empty form (since it contained a bad value)
+        weird_value = {1:'a'}
+        assert add_dicts_of_ints({1:weird_value}, {}, **kwargs) == {1:{}}
+        assert add_dicts_of_ints({1:weird_value}, {1:weird_value}, **kwargs) == {1:{}}
+        assert add_dicts_of_ints({1:weird_value}, {2:1}, **kwargs) == {1:{}, 2:1}
+        assert add_dicts_of_ints({1:weird_value}, {1:1}, **kwargs) == {}
+        ### With allow_nonconflicting_values turned on:
+        kwargs = {'recursive':False, 'allow_nonconflicting_values':True, 'remove_nonallowed_values':False}
+        # this time if the "bad" value is only in one of the dictionaries and nothing in the other, 
+        #  or is identical in both dictionaries, it's kept. 
+        for bad_value in ['a', [], {}, {1:1}, {'a':1}, {1:'a'}, None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            assert add_dicts_of_ints({1:bad_value}, {}, **kwargs) == {1:bad_value}
+            assert add_dicts_of_ints({1:bad_value}, {1:bad_value}, **kwargs) == {1:bad_value}
+            assert add_dicts_of_ints({1:bad_value}, {2:1}, **kwargs) == {1:bad_value, 2:1}
+        # but if there's a "good" value in one dictionary and a "bad" one in the other, an exception is still raised.
+        for bad_value in ['a', [], {}, {1:1}, {'a':1}, {1:'a'}, None, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            self.assertRaises(ValueError, add_dicts_of_ints, {1:bad_value}, {1:1}, **kwargs)
+            # except unfortunately this doesn't work right for True, because 1==True... TODO try to fix that somehow?
+        ## if nonallowed values are removed, the first cases are the same, in the last case the good value is kept
+        kwargs = {'recursive':False, 'allow_nonconflicting_values':True, 'remove_nonallowed_values':True}
+        for bad_value in ['a', [], {}, {1:1}, {'a':1}, {1:'a'}, None, True, False, [1,2,3], set([1,2,3]), 'abadf', int]:
+            assert add_dicts_of_ints({1:bad_value}, {}, **kwargs) == {1:bad_value}
+            assert add_dicts_of_ints({1:bad_value}, {1:bad_value}, **kwargs) == {1:bad_value}
+            assert add_dicts_of_ints({1:bad_value}, {2:1}, **kwargs) == {1:bad_value, 2:1}
+            assert add_dicts_of_ints({1:bad_value}, {1:1}, **kwargs) == {1:1}
+        ### Recursive takes priority over allow_nonconflicting_values if both apply:
+        # if recursive is False, if both values are identical dictionaries, they always get passed on unchanged.
+        kwargs = {'recursive':False, 'allow_nonconflicting_values':True, 'remove_nonallowed_values':False}
+        assert add_dicts_of_ints({1:{1:2}}, {1:{1:2}}, **kwargs) == {1:{1:2}}
+        assert add_dicts_of_ints({1:{1:'a'}}, {1:{1:'a'}}, **kwargs) == {1:{1:'a'}}
+        # if recursive is True, the same still happens with bad-valued dictionaries, 
+        #  but for int-valued dictionaries the new value is the sum of the originals instead of a copy
+        kwargs = {'recursive':True, 'allow_nonconflicting_values':True, 'remove_nonallowed_values':False}
+        assert add_dicts_of_ints({1:{1:2}}, {1:{1:2}}, **kwargs) == {1:{1:4}}
+        assert add_dicts_of_ints({1:{1:'a'}}, {1:{1:'a'}}, **kwargs) == {1:{1:'a'}}
 
     def test__invert_list_to_dict(self):
         assert invert_list_to_dict([]) == {}
