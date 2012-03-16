@@ -1,0 +1,4 @@
+<REGEX># .*
+some text
+more text
+<IGNORE> yet more text
