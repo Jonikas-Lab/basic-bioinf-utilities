@@ -74,12 +74,14 @@ def compare_files_with_regex(iter_1, iter_2,
     iter1, iter2 = iter(iter_1), iter(iter_2)
 
     if debug:   print " *** NEW COMPARISON ***"
-    iter1_stopped, iter2_stopped = False, False
-    while not (iter1_stopped or iter2_stopped):
+    while True:
 
         # advance both iterators to compare the next line pair (skipping IGNORE lines, and empty lines if requested)
+        # if either iterator is stopped, exit immediately
         (line1, iter1_stopped) = _advance_iter_keep_state(iter1,skip_IGNORE_lines=True,skip_empty_lines=ignore_empty_lines)
         (line2, iter2_stopped) = _advance_iter_keep_state(iter2,skip_IGNORE_lines=True,skip_empty_lines=ignore_empty_lines)
+        if iter1_stopped or iter2_stopped:  break
+
 
         if debug:   print 'raw lines:\n\t1) "%s"\n\t2) "%s"'%(line1, line2)
 
@@ -135,8 +137,11 @@ class Testing__everything(unittest.TestCase):
                 assert compare_files_with_regex(ignore_list, ignore_list) == True
                 assert compare_files_with_regex(ignore_list, []) == True
                 assert compare_files_with_regex([], ignore_list) == True
-                assert compare_files_with_regex(ignore_list, test_list) != True
-                assert compare_files_with_regex(test_list, ignore_list) != True
+                # the two below are test cases for when one iterator stopped and the other didn't:
+                #  the first line of the return tuple is an info line I don't feel like checking the details of, 
+                #   the second is the extra line from whichever iterator was longer (i.e. first line of test_list).
+                assert compare_files_with_regex(ignore_list, test_list)[1] == test_list[0]
+                assert compare_files_with_regex(test_list, ignore_list)[1] == test_list[0]
             for list1,list2 in itertools.permutations([[],ignore_list_1,ignore_list_0,ignore_list_2,ignore_list_long],2):
                 assert compare_files_with_regex(list1, list2) == True
         # a list should match itself no matter how many IGNORE lines are added. 
