@@ -94,26 +94,26 @@ def compare_files_with_regex(iter_1, iter_2,
             if not line1.startswith('<REGEX>'):     line1 = clean_line(line1, ignore_whitespace, ignore_case)
             if not line2.startswith('<REGEX>'):     line2 = clean_line(line2, ignore_whitespace, ignore_case)
 
-        if debug:   print 'cleaned lines:\n\t1) "%s"\n\t2) "%s"'%(line1, line2)
+        if debug:   print 'cleaned lines:\n\t1) "%s"\n\t2) "%s"'%(line1.strip(), line2.strip())
 
         # if one of the lines is a regex, apply it to the other line; return both lines if they don't match
         flags = re.IGNORECASE if ignore_case else 0
         if line1.startswith('<REGEX>'):
-            if not re.match('^%s$'%(line1[7:].strip()), line2, flags=flags):  return (line1,line2)
+            if not re.match('^%s$'%(line1[7:].strip()), line2, flags=flags):  return (line1.strip(),line2.strip())
         elif line2.startswith('<REGEX>'):
-            if not re.match('^%s$'%(line2[7:].strip()), line1, flags=flags):  return (line1,line2)
+            if not re.match('^%s$'%(line2[7:].strip()), line1, flags=flags):  return (line1.strip(),line2.strip())
 
         # if neither line is a regex, compare them: return both lines if they don't match
         else:
-            if not line1==line2:  return (line1,line2)
+            if not line1==line2:  return (line1.strip(),line2.strip())
 
         # if there wasn't a return or exception, just repeat the while loop
 
     # End condition: if all lines matched and both iterators are empty, return True; 
     #  if one iterator still has non-skipped lines left, return an info line and the next line from the other iterator.
     if iter1_stopped and iter2_stopped: return True
-    elif iter1_stopped:                 return ("The first iterator ended. Second iterator next line:\n", line2)
-    elif iter2_stopped:                 return ("The second iterator ended. First iterator next line:\n", line1)
+    elif iter1_stopped:                 return ("The first iterator ended. Second iterator next line:\n", line2.strip())
+    elif iter2_stopped:                 return ("The second iterator ended. First iterator next line:\n", line1.strip())
 
 
 
@@ -202,12 +202,14 @@ class Testing__everything(unittest.TestCase):
             assert compare_files_with_regex(['some text'], other_list, ignore_empty_lines=True) == True
         # testing ignore_whitespace
         for other_list in [['some  text'], ['some\ttext'], ['some \t\t text \t']]:
-            assert compare_files_with_regex(['some text'], other_list,ignore_whitespace=False)==('some text',other_list[0])
+            assert compare_files_with_regex(['some text'], other_list, ignore_whitespace=False) == ('some text', 
+                                                                                                    other_list[0].strip())
             assert compare_files_with_regex(['some text'], other_list, ignore_whitespace=True) == True
             assert compare_files_with_regex(['\t\tsome text'], other_list, ignore_whitespace=False) != True
             assert compare_files_with_regex(['\t\tsome text'], other_list, ignore_whitespace=True) == True
             # removing the whitespace completely doesn't work, though
-            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=False) ==('sometext',other_list[0])
+            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=False) == ('sometext',
+                                                                                                   other_list[0].strip())
             assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=True) != True
         # testing ignore_case
         for other_list in [['SOME text'], ['Some Text'], ['sOmE tExT']]:
