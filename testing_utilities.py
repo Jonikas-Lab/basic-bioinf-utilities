@@ -50,18 +50,20 @@ def clean_line(curr_line, clean_whitespace=True, make_lowercase=False):
 
 def compare_files_with_regex(iter_1, iter_2, 
                              ignore_empty_lines=False, ignore_whitespace=False, ignore_case=False):
-    """ Given two string iterators, return True if they're identical except for special treatment of <REGEX> and <IGNORE>. 
+    """ return True if the two string iterators are identical (except for special cases), else description of difference.
 
     The inputs can be lists of strings, generators, sets, open files, etc.  NO INPUT CHECKING IS DONE.
     The program goes over both iterators in parallel (always looking at element1 and element2), as follows:
-     - if either element starts with <IGNORE>, ignore it and advance its iterator to the next element.
-     - if both elements start with <REGEX>, raise an exception.
+     - if neither element starts with either special string (<REGEX> or <IGNORE>), compare them directly:
+         if the elements are identical, advance both iterators, otherwise return the two elements
      - if one element starts with <REGEX>, parse the rest of it as a regular expression: 
          (removing whitespace from start/end, and adding ^ and $ to start and end)
-         if the other element matches the regex, advance both iterators, otherwise return False
-     - if neither element starts with either special string, compare them directly:
-         if the elements are identical, advance both iterators, otherwise return False
-    If the end of both iterators has been reached without finding a mismatch, return True. 
+         if the other element matches the regex, advance both iterators, otherwise return the two elements
+     - if both elements start with <REGEX>, raise an exception - can't compare two regular expressions!
+     - if either element starts with <IGNORE>, ignore it and advance its iterator to the next element.
+    If the end of both iterators has been reached without finding a mismatch, return True; 
+     if the end of one but not the other has been reached, return a string stating that and the first extra line. 
+
     If ignore_empty_lines is True, all lines containing nothing or just whitespace are ignored (treated like <IGNORE>).
     If ignore_whitespace is True, change all sequences of multiple spaces/tabs to a single space, 
      and remove all space at the beginning and end, before doing comparisons.
@@ -92,23 +94,24 @@ def compare_files_with_regex(iter_1, iter_2,
 
         if debug:   print 'cleaned lines:\n\t1) "%s"\n\t2) "%s"'%(line1, line2)
 
-        # if one of the lines is a regex, apply it to the other line; return False if it doesn't match
+        # if one of the lines is a regex, apply it to the other line; return both lines if they don't match
         flags = re.IGNORECASE if ignore_case else 0
         if line1.startswith('<REGEX>'):
-            if not re.match('^%s$'%(line1[7:].strip()), line2, flags=flags):  return False
+            if not re.match('^%s$'%(line1[7:].strip()), line2, flags=flags):  return (line1,line2)
         elif line2.startswith('<REGEX>'):
-            if not re.match('^%s$'%(line2[7:].strip()), line1, flags=flags):  return False
+            if not re.match('^%s$'%(line2[7:].strip()), line1, flags=flags):  return (line1,line2)
 
-        # if neither line is a regex, compare them: return False if they don't match
+        # if neither line is a regex, compare them: return both lines if they don't match
         else:
-            if not line1==line2:  return False
+            if not line1==line2:  return (line1,line2)
 
         # if there wasn't a return or exception, just repeat the while loop
 
     # End condition: if all lines matched and both iterators are empty, return True; 
-    #  if one iterator still has non-skipped lines left, return False.
+    #  if one iterator still has non-skipped lines left, return an info line and the next line from the other iterator.
     if iter1_stopped and iter2_stopped: return True
-    else:                               return False
+    elif iter1_stopped:                 return ("The first iterator ended. Second iterator next line:\n", line2)
+    elif iter2_stopped:                 return ("The second iterator ended. First iterator next line:\n", line1)
 
 
 
@@ -118,6 +121,7 @@ class Testing__everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
 
     def test__compare_files_with_regex(self):
+        # MAYBE-TODO in most cases when there shouldn't be a match I'm only checking that the output!=True, not the exact non return value which describes the mismatch - could fix that, but I'm not sure it's worth it.
         # any list should be identical to itself
         for test_list in [[], ['hi','there','thing'], ['1','2','3']]:
             assert compare_files_with_regex(test_list, test_list) == True
@@ -131,8 +135,8 @@ class Testing__everything(unittest.TestCase):
                 assert compare_files_with_regex(ignore_list, ignore_list) == True
                 assert compare_files_with_regex(ignore_list, []) == True
                 assert compare_files_with_regex([], ignore_list) == True
-                assert compare_files_with_regex(ignore_list, test_list) == False
-                assert compare_files_with_regex(test_list, ignore_list) == False
+                assert compare_files_with_regex(ignore_list, test_list) != True
+                assert compare_files_with_regex(test_list, ignore_list) != True
             for list1,list2 in itertools.permutations([[],ignore_list_1,ignore_list_0,ignore_list_2,ignore_list_long],2):
                 assert compare_files_with_regex(list1, list2) == True
         # a list should match itself no matter how many IGNORE lines are added. 
@@ -168,43 +172,43 @@ class Testing__everything(unittest.TestCase):
             compare_files_with_regex(last_regex_list, first_regex_list) == True
         # some specific simple ignore and regex testing
         assert compare_files_with_regex(['1','2','3'],['1','2','3']) == True
-        assert compare_files_with_regex(['2','1','3'],['1','2','3']) == False
-        assert compare_files_with_regex(['12','2','3'],['1','2','3']) == False
+        assert compare_files_with_regex(['2','1','3'],['1','2','3']) == ('2','1')
+        assert compare_files_with_regex(['12','2','3'],['1','2','3']) == ('12','1')
         assert compare_files_with_regex(['<REGEX>[12]','2','3'],['1','2','3']) == True
-        assert compare_files_with_regex(['<IGNORE>12','2','3'],['1','2','3']) == False
+        assert compare_files_with_regex(['<IGNORE>12','2','3'],['1','2','3']) == ('2','1')
         assert compare_files_with_regex(['<IGNORE>12','2','3'],['2','3']) == True
         assert compare_files_with_regex(['<IGNORE>12','2','3'],['<IGNORE>1','2','3']) == True
         # some specific testing of more complicated regexes
         assert compare_files_with_regex(['<REGEX>.*'],['some text here']) == True
         assert compare_files_with_regex(['<REGEX>some.*'],['some text here']) == True
-        assert compare_files_with_regex(['<REGEX>.*some'],['some text here']) == False
+        assert compare_files_with_regex(['<REGEX>.*some'],['some text here']) == ('<REGEX>.*some','some text here')
         assert compare_files_with_regex(['<REGEX>.*here'],['some text here']) == True
         assert compare_files_with_regex(['<REGEX>some text here'],['some text here']) == True
         assert compare_files_with_regex(['<REGEX>.*some text here'],['some text here']) == True
         assert compare_files_with_regex(['<REGEX>[sometxhr ]*'],['some text here']) == True
-        assert compare_files_with_regex(['<REGEX>[eosmtxhr ]'],['some text here']) == False
+        assert compare_files_with_regex(['<REGEX>[eosmtxhr ]'],['some text here'])==('<REGEX>[eosmtxhr ]','some text here')
         assert compare_files_with_regex(['<REGEX>[omes]*\s[xet]*\s[ehr]*'],['some text here']) == True
-        assert compare_files_with_regex(['<REGEX>[oes]*\s[xet]*\s[ehr]*'],['some text here']) == False
-        assert compare_files_with_regex(['<REGEX>[omes]\s[xet]*\s[ehr]*'],['some text here']) == False
-        assert compare_files_with_regex(['<REGEX>[omes]*[xet]*\s[ehr]*'],['some text here']) == False
+        assert compare_files_with_regex(['<REGEX>[oes]*\s[xet]*\s[ehr]*'],['some text here']) != True
+        assert compare_files_with_regex(['<REGEX>[omes]\s[xet]*\s[ehr]*'],['some text here']) != True
+        assert compare_files_with_regex(['<REGEX>[omes]*[xet]*\s[ehr]*'],['some text here']) != True
         # testing ignore_empty_lines
         for other_list in [['', 'some text'], ['some text', '    \t'], ['', '\t', 'some text', '', '']]:
-            assert compare_files_with_regex(['some text'], other_list, ignore_empty_lines=False) == False
+            assert compare_files_with_regex(['some text'], other_list, ignore_empty_lines=False) != True
             assert compare_files_with_regex(['some text'], other_list, ignore_empty_lines=True) == True
         # testing ignore_whitespace
         for other_list in [['some  text'], ['some\ttext'], ['some \t\t text \t']]:
-            assert compare_files_with_regex(['some text'], other_list, ignore_whitespace=False) == False
+            assert compare_files_with_regex(['some text'], other_list,ignore_whitespace=False)==('some text',other_list[0])
             assert compare_files_with_regex(['some text'], other_list, ignore_whitespace=True) == True
-            assert compare_files_with_regex(['\t\tsome text'], other_list, ignore_whitespace=False) == False
+            assert compare_files_with_regex(['\t\tsome text'], other_list, ignore_whitespace=False) != True
             assert compare_files_with_regex(['\t\tsome text'], other_list, ignore_whitespace=True) == True
             # removing the whitespace completely doesn't work, though
-            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=False) == False
-            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=True) == False
+            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=False) ==('sometext',other_list[0])
+            assert compare_files_with_regex(['sometext'], other_list, ignore_whitespace=True) != True
         # testing ignore_case
         for other_list in [['SOME text'], ['Some Text'], ['sOmE tExT']]:
-            assert compare_files_with_regex(['some text'], other_list, ignore_case=False) == False
+            assert compare_files_with_regex(['some text'], other_list, ignore_case=False) == ('some text',other_list[0])
             assert compare_files_with_regex(['some text'], other_list, ignore_case=True) == True
-            assert compare_files_with_regex(['SOME TEXT'], other_list, ignore_case=False) == False
+            assert compare_files_with_regex(['SOME TEXT'], other_list, ignore_case=False) == ('SOME TEXT',other_list[0])
             assert compare_files_with_regex(['SOME TEXT'], other_list, ignore_case=True) == True
         ### testing on files instead of lists - remember to restart the iterators every time!
         if debug:   print " ************* file tests **************** "
@@ -231,7 +235,7 @@ class Testing__everything(unittest.TestCase):
             with open(first_file,'r') as FILE1:
                 with open(file3,'r') as F3:
                     assert compare_files_with_regex(FILE1, F3, ignore_empty_lines=False, 
-                                                    ignore_whitespace=False, ignore_case=False) == False
+                                                    ignore_whitespace=False, ignore_case=False) != True
             with open(first_file,'r') as FILE1:
                 with open(file3,'r') as F3:
                     assert compare_files_with_regex(FILE1, F3, ignore_empty_lines=True, 
@@ -241,7 +245,7 @@ class Testing__everything(unittest.TestCase):
                 with open(first_file,'r') as FILE1:
                     with open(file3,'r') as F3:
                         assert compare_files_with_regex(FILE1, F3, ignore_empty_lines=v1, 
-                                                        ignore_whitespace=v2, ignore_case=v3) == False
+                                                        ignore_whitespace=v2, ignore_case=v3) != True
 
 
 if __name__=='__main__':
