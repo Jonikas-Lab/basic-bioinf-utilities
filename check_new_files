@@ -55,5 +55,6 @@ else
         echo $line
     done
 fi
-# MAYBE-TODO try something like the above version for directories?  But the modification times reported by ls -ld can be very different from the modification time of containing files!
+# MAYBE:TODO try something like the above version for directories?  But the modification times reported by ls -ld can be very different from the modification time of containing files!
 
+# TODO replace '/home/weronika' in the output with '~' to make the lines shorter!  Or possibly just replace the entire DIR path prefix with '$DIR' or an empty string or something.
