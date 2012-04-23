@@ -171,112 +171,135 @@ def check_mutation_count_try_all_methods(HTSeq_alignment, treat_unknown_as='unkn
 
 ################## unit tests ################## 
 
+class Fake_deepseq_objects:
+    """ Fake deepseq data objects for testing. """
+    # NOTE: not all of those are used in the unit-tests for this module, but they're also imported elsewhere!
+
+    class Fake_HTSeq_cigar_op:
+        """ Fake CIGAR operation, mimicking HTSeq cigar object."""
+        size = 1
+        def __init__(self,string):  
+            self.type = string
+
+    class Fake_HTSeq_genomic_pos:
+        """ Fake HTSeq.GenomicPosition. """
+        def __init__(self, chrom, strand, start, end):
+            self.chrom = chrom
+            self.strand = strand
+            self.start = start
+            self.end = end
+
+    class Fake_HTSeq_read:
+        """ Fake read, as in HTSeq_alignment.read. """
+        def __init__(self,seq='AAA',name='test'):
+            self.seq = seq
+            self.name = name
+
+    class Fake_HTSeq_alignment:
+        """ Fake HTSeq.Alignment object."""
+
+        def __init__(self, seq='AAA', readname='test', unaligned=False, pos=('chr_','+',0,0), 
+                     cigar_string=None, optional_field_data={}):    
+            self.read = Fake_deepseq_objects.Fake_HTSeq_read(seq,readname)
+            if unaligned:
+                self.aligned = False
+                self.iv = None
+            else:
+                self.aligned = True
+                self.iv = Fake_deepseq_objects.Fake_HTSeq_genomic_pos(*pos)
+                self.optional_field_data = optional_field_data
+                if cigar_string is None:    
+                    self.cigar = None
+                else:                       
+                    self.cigar = [Fake_deepseq_objects.Fake_HTSeq_cigar_op(c) for c in cigar_string]
+
+        def optional_field(self,field):             
+            return self.optional_field_data[field]
+
+
 class Testing(unittest.TestCase):
     """ Unit-tests for all the functions/classes in this module. """
 
-    class Fake_cigar_op:
-        """ Fake CIGAR operation, mimicking HTSeq cigar object."""
-        def __init__(self,string):  self.type = string
-        size = 1
-    class Fake_alignment:
-        """ Fake alignment with optional_field lookup function, mimicking HTSeq alignment object."""
-        def __init__(self,data):        self.data = data
-        def optional_field(self,x):     return self.data[x]
-
     def test__check_mutation_count_by_CIGAR_string(self):
         # no alignment (CIGAR is None)
-        class fake_alignment:
-            cigar = None
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment()
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == -1
         # CIGAR is unambiguous, no MD or NM given (or needed)
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('='),self.Fake_cigar_op('=')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='==')
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == 0
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('X'),self.Fake_cigar_op('X')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='XX')
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == 2
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('D'),self.Fake_cigar_op('D')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='DD')
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == 2
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('S'),self.Fake_cigar_op('=')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='S=')
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == 0
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('S'),self.Fake_cigar_op('X')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='SX')
         assert check_mutation_count_by_CIGAR_string(fake_alignment) == 1
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('N'),self.Fake_cigar_op('=')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='N=')
         assert check_mutation_count_by_CIGAR_string(fake_alignment, ignore_introns=True) == 0
         assert check_mutation_count_by_CIGAR_string(fake_alignment, ignore_introns=False) == 1
         # CIGAR is ambiguous (contains M's) - return -1, 2 or 0 depending on what treat_unknown_as is set to
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('M'),self.Fake_cigar_op('M')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='MM')
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='unknown') == -1
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='mutation') == 2
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='match') == 0
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('M'),self.Fake_cigar_op('=')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='M=')
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='unknown') == -1
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='mutation') == 1
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='match') == 0
-        class fake_alignment:
-            cigar = [self.Fake_cigar_op('M'),self.Fake_cigar_op('X')]
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='MX')
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='unknown') == -1
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='mutation') == 2
         assert check_mutation_count_by_CIGAR_string(fake_alignment, treat_unknown_as='match') == 1
 
     def test__check_mutation_count_by_optional_NM_field(self):
         """ the tested function should return -1 if no NM field, otherwise return value of NM field. """
-        fake_alignment = self.Fake_alignment({})
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment()
         assert check_mutation_count_by_optional_NM_field(fake_alignment) == -1
         for x in range(10):
-            fake_alignment = self.Fake_alignment({'NM':x})
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'NM':x})
             assert check_mutation_count_by_optional_NM_field(fake_alignment) == x
 
     def test__check_mutation_count_by_optional_MD_field(self):
         """ see ~/experiments/reference_data/aligner_format_info/* files for MD field examples."""
-        fake_alignment = self.Fake_alignment({})
+        fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment({})
         assert check_mutation_count_by_optional_MD_field(fake_alignment) == -1
         for s in [str(x) for x in range(30)]:
-            fake_alignment = self.Fake_alignment({'MD': s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 0
-            fake_alignment = self.Fake_alignment({'MD': s+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 0
-            fake_alignment = self.Fake_alignment({'MD': s+'A'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'A'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 1
-            fake_alignment = self.Fake_alignment({'MD': s+'A0G'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'A0G'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 2
-            fake_alignment = self.Fake_alignment({'MD': s+'A2G'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'A2G'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 2
-            fake_alignment = self.Fake_alignment({'MD': s+'A2G2T2C2N'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'A2G2T2C2N'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 5
-            fake_alignment = self.Fake_alignment({'MD': s+'^A'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'^A'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 1
-            fake_alignment = self.Fake_alignment({'MD': s+'^AGC'+s })
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'MD': s+'^AGC'+s })
             assert check_mutation_count_by_optional_MD_field(fake_alignment) == 3
 
     def test__check_mutation_count_try_all_methods(self):
         """ The order of check is CIGAR, NM, MD; CIGAR is skipped if ambiguous; NM and MD skipped if inexistent. 
         Not attempting to deal with inconsistent states sensibly."""
         # all measures agree there are no mutations (with 0-2 of NM/MD fields present)
-        for optional_data in [{'NM':0, 'MD':'10'}, {'NM':0}, {'MD':'10'}, {}]:
-            fake_alignment = self.Fake_alignment(optional_data)
-            fake_alignment.cigar = [self.Fake_cigar_op('=') for x in range(10)]
+        for opt_data in [{'NM':0, 'MD':'10'}, {'NM':0}, {'MD':'10'}, {}]:
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='='*10, optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 0
         # all measures agree there is a mutation (with 0-2 of NM/MD fields present)
-        for optional_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}, {}]:
-            fake_alignment = self.Fake_alignment(optional_data)
-            fake_alignment.cigar = [self.Fake_cigar_op('X')] + [self.Fake_cigar_op('=') for x in range(9)]
+        for opt_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}, {}]:
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='X'+'='*9,optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 1
         # CIGAR is ambiguous, there are no mutations according to NM/MD (NM, MD or both are present)
-        for optional_data in [{'NM':0, 'MD':'10'}, {'NM':0}, {'MD':'10'}]:
-            fake_alignment = self.Fake_alignment(optional_data)
-            fake_alignment.cigar = [self.Fake_cigar_op('M') for x in range(10)]
+        for opt_data in [{'NM':0, 'MD':'10'}, {'NM':0}, {'MD':'10'}]:
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='M'*10, optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 0
         # CIGAR is ambiguous, there is a  mutation according to NM/MD (NM, MD or both are present)
-        for optional_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}]:
-            fake_alignment = self.Fake_alignment(optional_data)
-            fake_alignment.cigar = [self.Fake_cigar_op('M') for x in range(10)]
+        for opt_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}]:
+            fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='M'*10, optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 1
 
     def test__get_seq_count_from_collapsed_header(self):
