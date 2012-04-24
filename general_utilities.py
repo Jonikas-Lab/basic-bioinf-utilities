@@ -157,8 +157,10 @@ class keybased_defaultdict(defaultdict):
 
 ### Useful class mix-ins
 
+
 class FrozenClass(object):
-    """ Class that allows prevention of adding new attributes after creation.
+    """ Class that allows prevention of adding new attributes at some point after creation - NOT full immutability.
+
     Use by inheriting from this, and then running self._freeze() at the end of __init__, like this:
         class Test_freezing(FrozenClass):
             def __init__(self, x, y):
@@ -172,6 +174,7 @@ class FrozenClass(object):
     # by Jochen Ritzel on Stackoverflow 
     #   (http://stackoverflow.com/questions/3603502/prevent-creating-new-attributes-outside-init)
     # This has to be a new-style class (i.e. inheriting from object), old-style classes don't seem to have __setattr__?
+    # MAYBE-TODO could/should this be done as a decorators instead?
 
     __isfrozen = False
 
@@ -183,7 +186,44 @@ class FrozenClass(object):
     def _freeze(self):
         self.__isfrozen = True
 
-# MAYBE-TODO could/should these be done as a decorators instead?
+
+def reversibly_immutable(wrapped_class):
+    """ NOT FINISHED!!!
+    
+    DECORATOR: gives a class a make_immutable() and make_mutable() method; also makes hashable if _hash() is defined.
+
+    _____
+    """
+    # MAYBE-TODO not finished!!!  see ~/experiments/mutant_pool_screens/mutant_deepseq_analysis/code/mutant_analysis_classes.py Insertion_position class for one implementation of this - I think it's too class-specific for a general decorator to be easy.
+
+    if not isinstance(object,wrapped_class):
+        raise ValueError("Can only apply the reversibly_immutable decorator to new-style classes based on object!")
+
+    def changes_not_allowed(self, *args, **kwargs):
+        raise AttributeError("'%s' object is currently immutable, can't make changes!"%type(self))
+
+    # TODO what methods besides __setitem__/__delitem__ do we need to override?  Probably depends on class... COMPLICATED!!
+    # MAYBE-TODO this overrides the general methods like __setitem__ etc, but what if the class has other custom methods that modify things? 
+    def make_immutable(self):
+        # TODO implement removing mutability methods!
+        raise NotImplementedError()
+        self.__setitem__ = changes_not_allowed
+        self.__delitem__ = changes_not_allowed
+        # make hashable by setting __hash__ to the private _hash method
+        if hasattr(self,'_hash'):
+            self.__hash__ = self._hash
+
+    def make_mutable(self):
+        # TODO implement re-adding mutability methods!
+        raise NotImplementedError()
+        # since class is mutable now, it can't be hashable - remove __hash__, 
+        #  but keep private _hash method in case we want to make it immutable/hashable again
+        if hasattr(self,'__hash__'):
+            del self.__hash__
+
+    wrapped_class.make_immutable = make_immutable
+    wrapped_class.make_mutable = make_mutable
+    return wrapped_class
 
     
 ######################################## FILE READING/WRITING, COMMAND-LINE STUFF  ########################################
