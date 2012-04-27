@@ -8,10 +8,11 @@ Various testing utilities I wrote (for unit tests, functional tests etc) - see d
 import itertools
 import unittest
 import re
+import os, shutil
 
 debug=0
 
-### output file comparison for functional testing
+######### Output file comparison for functional testing
 # The reason for this function is to be able to compare an output file and a reference file but ignore things that are expected to change (like the date in the header) - the reference file can contain lines starting with <REGEX> and then giving a regular expression (.* is fine), in which case the output file lines are compared against the regex instead, which allows wildcards for dates/etc.  See my stackoverflow question http://stackoverflow.com/questions/9726214/testing-full-program-by-comparing-output-file-to-reference-file-whats-it-calle
 
 
@@ -115,6 +116,125 @@ def compare_files_with_regex(iter_1, iter_2,
     elif iter1_stopped:                 return ("The first iterator ended. Second iterator next line:\n", line2.strip())
     elif iter2_stopped:                 return ("The second iterator ended. First iterator next line:\n", line1.strip())
 
+
+######### Running functional tests, with or without input/output file comparison
+
+
+def run_functional_tests(list_of_test_data, option_parser, function_to_run, test_folder, smoke_tests=False, 
+                         argument_converter=(lambda *x: x), outfile_option='', append_to_outfilenames=''):
+    """ Run tests in list_of_test_data using function_to_run: check outfiles against reference (unless smoke_tests=True).
+
+    The list_of_test_data argument should be a list of (testname,descr,args) or (testname,args) tuples: 
+     testname is a short test name (and will be used for outfile names); descr is an optional longer description string; 
+     and args is a string of command-line arguments that will be passed to option_parser.  
+
+    For each test, the following is done:
+        - add " outfile_option test_folder/testname+append_to_outfilenames" to args to direct the output, 
+           to customize how the outfile is specified, and create proper outfile name from test name.
+           (just " filename" by default, or " -o filename" or " --output_file filename" or such if desired)
+        - parse args using option_parser (which should be an optparse parser object)
+        - run "function_to_run(*final_arguments)" to generate the outfiles, where final_arguments is the output of
+            "argument_converter(option_parser,options,args)" - by default argument_converter does nothing, so you end up
+            running "function_to_run(option_parser,options,args)", but for example if you want to run 
+            "function_to_run(args,options)" instead, pass "lambda p,o,a: a,o" as argument_converter. 
+           This should result in the creation of one or more output files per test, in test_folder.
+        If smoke_tests is True, nothing else is done - we're just making sure the function runs without issues.
+        Otherwise, auto-detect output reference files for each test in test_folder (they should start with test_name), 
+         compare to actual output files using compare_files_with_regex, print information if the comparison fails.
+
+    The program will print the test name/descr/args to stdout, along with details on the test failure if there is one.
+    It stops with the first failure, and returns 1; if all tests passed, returns 0.
+    """
+    tmp_outfile_basename = "test_tmp"
+
+    if smoke_tests:
+        print("\n*** SMOKE TEST RUNS - THE OUTPUT IS NOT CHECKED, WE'RE JUST MAKING SURE THERE ARE NO ERRORS. ***")
+        test_type = 'smoke-test'
+    else:
+        print("\n*** CHECKED TEST RUNS - THE OUTPUT IS CHECKED AGAINST CORRECT REFERENCE FILES. ***")
+        test_type = 'checked-test'
+
+    # check for existence of test_folder: for smoke-tests create new one, otherwise just make sure it exists.
+    if smoke_tests:
+        if os.access(test_folder,os.F_OK):
+            print("Test output files will be saved in the %s folder (already present - removing it now)."%test_folder)
+            shutil.rmtree(test_folder)
+        else:
+            print("Test output files will be saved in the %s folder (not present - creating it now)."%test_folder)
+        os.mkdir(test_folder)
+    else:
+        if not os.access(test_folder,os.F_OK):
+            print("Error: test folder %s doesn't exist or can't be accessed - can't run tests."%test_folder)
+            return 1
+
+    # running each test
+    for full_test_data in list_of_test_data:
+
+        # each test tuple must provide test_args, and optionally provides test_name,test_descr as well - check by length
+        if len(full_test_data)==3:
+            test_name, test_descr, test_args = full_test_data
+        elif len(full_test_data)==2:
+            test_name, test_args = full_test_data
+            test_descr = ''
+        else:
+            raise Exception("Couldn't parse test_case %s! Needs to be (name,descr,args) or (name,args)."%full_test_data)
+
+        # print info about the test to the command-line
+        if test_descr and test_name:    print(" * New %s run: %s (%s)."%(test_type, test_descr, test_name))
+        elif test_descr or test_name:   print(" * New %s run: %s."     %(test_type, (test_descr or test_name)))
+        else:                           print(" * New %s run."         %(test_type))
+        print("   Arguments: %s"%test_args)
+
+        # smoke-tests use test name as outfile name; normal tests use tmp_outfile_basename
+        outfilename = (test_name if smoke_tests else tmp_outfile_basename) + append_to_outfilenames
+        test_args_and_outfile = test_args + " %s %s"%(outfile_option, os.path.join(test_folder,outfilename))
+        (options, args) = option_parser.parse_args(test_args_and_outfile.split())
+
+        # actually run function_to_run with the given options/arguments (run them through argument_converter first)
+        processed_function_args = argument_converter(option_parser,options,args)
+        function_to_run(*processed_function_args)
+
+        ### if it's a smoke-test, this is all, just go on to the next test; 
+        if smoke_tests: continue
+
+        ### if it's not a smoke-test, compare output files to reference files
+        # find output reference files in test_folder to compare the output files against
+        test_reference_files = [f for f in os.listdir(test_folder) if f.startswith(test_name)]
+        # for each reference output files found, compare the tmp output file, 
+        #  and fail the test if the output file doesn't exist or differs from the reference file.
+        for reffile in test_reference_files:
+            reffile = os.path.join(test_folder,reffile)
+            expected_outfile = reffile.replace(test_name, tmp_outfile_basename)
+            if not os.path.exists(expected_outfile):
+                print("TEST FAILED!!  Output file %s (to match reference file %s) doesn't exist."%(expected_outfile,
+                                                                                                   reffile))
+                return 1
+            with open(reffile,'r') as REFFILE:
+                with open(expected_outfile,'r') as OUTFILE:
+                    file_comparison_result = compare_files_with_regex(OUTFILE, REFFILE)
+            if file_comparison_result==True:
+                os.remove(expected_outfile)
+            else:
+                print("TEST FAILED!!  Reference file %s and output file %s differ. MORE INFO "%(reffile, expected_outfile)
+                      +"ON DIFFERENCE (the two mismatched lines or an error message): '%s', '%s'"%file_comparison_result)
+                return 1
+        # make sure there aren't any extra output files without reference files
+        test_output_files = [f for f in os.listdir(test_folder) if f.startswith(tmp_outfile_basename)]
+        for outfile in test_output_files:
+            outfile = os.path.join(test_folder,outfile)
+            expected_reffile = outfile.replace(tmp_outfile_basename, test_name)
+            if not os.path.exists(expected_reffile):
+                print("TEST FAILED!!  Output file %s has no matching reference file (%s)."%(outfile,expected_reffile))
+                return 1
+
+    if smoke_tests:
+        print("*** Smoke test runs finished. If you didn't get any errors, that's good (warnings are all right). "
+              + "You can check the output files to make sure they look reasonable (this is NOT done automatically!). ***")
+    else:
+        print("*** Checked test runs finished - EVERYTHING IS FINE. ***")
+    return 0
+
+    # I don't have a unit-test or functional test for it, but I rewrote do_test_run functions in ~/experiments/generating_library/combinatorial_pooling/code/robotic_plate_transfer.py and ~/experiments/mutant_pool_screens/mutant_deepseq_analysis/code/mutant_count_alignments.py to use it, and it works right.
 
 
 ############################## unit-tests of the functions in this file ##################################
