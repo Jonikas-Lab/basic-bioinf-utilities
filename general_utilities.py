@@ -243,11 +243,11 @@ def read_two_column_file(filename,numerical_values=True):
         else:                   data_dict[name] = value
     return data_dict
 
-def read_tab_separated_file(filename, ignore_comments=True):
+def read_tab_separated_file(filename, ignore_comments=True, separator='\t'):
     """ Read in a tab-separated file (ignore #-comment lines), return a list for each column. """
     for line in open(filename):
         if ignore_comments and line[0]=='#':    continue
-        fields = line.strip('\n').split('\t')
+        fields = line.strip('\n').split(separator)
         try:
             for i in range(len(fields)): data_list[i].append(fields[i])
         except NameError:
@@ -747,11 +747,8 @@ class Testing_everything(unittest.TestCase):
         assert compare_lists_unordered(split_into_N_sets_by_counts(input3,8), 
                                        [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set(), set(), set()])
 
-
-
-
-
     # TODO add tests for everything else
+
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
