@@ -425,6 +425,54 @@ def get_sets_from_cutoffs(value_dict, value_ranges):
     return ranges_to_sets
     # TODO add to unit-tests
 
+### local min/max finding
+
+def find_local_maxima_by_width(data, N_surrounding_points=1, include_start_end=True):
+    """ Return list of local maxima (value,index) tuples; deals with noise by requiring N lower values on each side.
+
+    Go over the data list searching for a point that's higher than N_surrounding_points on both sides;
+     return the list of (value,index) tuples for all such points.
+    The point of the N_surrounding_points is to filter out noise by excluding local maxima that are just due to small 
+     random changes in what without the noise would be a monotonic line.  There are other approaches to noise problems.
+
+    Dealing with runs of identical local maximum values: the program requires N_surrounding_points on both sides 
+      of the entire run of identical values, and only returns the first value/index of the identical run.
+
+    The include_start_end argument governs how to deal with the first and last N_surrounding_points of data:
+      - if False, these points will be ignore, since they cannot have N_surrounding_points on both sides
+      - if True, these points will be used - the N_surrounding_points requirement will be relaxed to allow fewer
+                                                surrounding points if they go up against the data start/end.
+    """
+    # I also have a full command-line program with options that's a wrapper around this function:
+    #    find_local_maxima.py in ~/experiments/other_projects/local_maxima_detector_for_Ute
+    if include_start_end:
+        padding = [min(data)] * N_surrounding_points
+        data = padding + data + padding
+    else:   padding = []
+    local_maxima = []
+    for i in range(N_surrounding_points, len(data)-N_surrounding_points):
+        curr_value = data[i]
+        # if there are multiple identical values, ignore any but the first
+        if data[i-1] == data[i]:
+            continue
+        # grab N_surrounding_points values before the current value
+        values_before_curr = data[i-N_surrounding_points : i]
+        # grab N_surrounding_points values after the current value, IGNORING any identical ones
+        N_plateau_values = 0
+        for x in data[i+1:]:
+            if x != curr_value:
+                break
+            N_plateau_values += 1
+        values_after_curr = data[i+1+N_plateau_values : i+1+N_plateau_values+N_surrounding_points]
+        # if the current value is higher than N_surrounding_points on both sides, add it to local_maxima list
+        if curr_value > max(values_before_curr) and curr_value > max(values_after_curr):
+            # (if the data was padded, subtract the padding size from the index to get index in original data)
+            curr_index = i - len(padding)
+            local_maxima.append((curr_value, curr_index))
+    return local_maxima
+
+# MAYBE-TODO an alternative implementation would be find_local_maxima_by_height, where we'd take any point that was at least Kx higher than the surrounding M or fewer points, even if M was just 2.  That would also filter out noise reasonably well, assuming the noise is small in amplitude.
+# MAYBE-TODO for more flexible dealing with noise, there may be something in scipy... See http://stackoverflow.com/questions/1713335/peak-finding-algorithm-for-python-scipy
 
 ### moving average and moving median, plus some help functions (anything starting with _ won't be imported)
 
@@ -718,8 +766,27 @@ class Testing_everything(unittest.TestCase):
             obj.z = val
         self.assertRaises(TypeError, test_function, a, 10)
 
-    def test__split_into_N_sets_by_counts(self):
+    def test__find_local_maxima_by_width(self):
+        # basic functionality - find the local maximum
+        for N_surrounding_points in [1,2,3]:
+            assert find_local_maxima_by_width([1,2,3,4,3,2,1], N_surrounding_points) == [(4,3)]
+            assert find_local_maxima_by_width([1,2,3,4,3,2,1,2,3,4,3,2,1], N_surrounding_points) == [(4,3),(4,9)]
+        # require at least N_surrounding_points lower points on both sides of the maximum
+        assert find_local_maxima_by_width([1,2,1,2,1,2,1], N_surrounding_points=1) == [(2,1),(2,3),(2,5)]
+        for N_surrounding_points in [2,3]:
+            assert find_local_maxima_by_width([1,2,1,2,1,2,1], N_surrounding_points) == []
+        # require N_surrounding_points on either end 
+        assert find_local_maxima_by_width([1,1,2,1,2], N_surrounding_points=2) == []
+        assert find_local_maxima_by_width([1,1,2,1,2], N_surrounding_points=1) == [(2,2),(2,4)]
+        assert find_local_maxima_by_width([2,1,2,1,1], N_surrounding_points=2) == []
+        assert find_local_maxima_by_width([2,1,2,1,1], N_surrounding_points=1) == [(2,0),(2,2)]
+        # how to deal with points in the first/last N_surrounding_points depends on include_start_end:
+        assert find_local_maxima_by_width([2,1,1,2], N_surrounding_points=1, include_start_end=False) == []
+        assert find_local_maxima_by_width([2,1,1,2], N_surrounding_points=1, include_start_end=True) == [(2,0),(2,3)]
+        # when there are adjacent points with same value, return either one
+        assert find_local_maxima_by_width([1,2,2,1],1) in ( [(2,1)], [(2,2)] )
 
+    def test__split_into_N_sets_by_counts(self):
         input1 = {'a':1000}
         for N in range(1,10):
             assert compare_lists_unordered(split_into_N_sets_by_counts(input1,N), 
