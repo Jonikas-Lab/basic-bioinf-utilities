@@ -167,6 +167,14 @@ def run_functional_tests(list_of_test_data, option_parser, function_to_run, test
             print("Error: test folder %s doesn't exist or can't be accessed - can't run tests."%test_folder)
             return 1
 
+    # remove any output test files that may have been left over from previous runs
+    #  (if a previous test run failed, the output files aren't deleted, so if the first new test doesn't generate
+    #   an outfile with the same name, it'll register an extra outfile with no matching infile and give an error)
+    old_test_tmp_outfiles = [f for f in os.listdir(test_folder) if f.startswith(tmp_outfile_basename)]
+    for old_outfile in old_test_tmp_outfiles:   
+        old_outfile = os.path.join(test_folder,old_outfile)
+        os.remove(old_outfile)
+
     # running each test
     for full_test_data in list_of_test_data:
 
@@ -215,7 +223,7 @@ def run_functional_tests(list_of_test_data, option_parser, function_to_run, test
             if file_comparison_result==True:
                 os.remove(expected_outfile)
             else:
-                print("TEST FAILED!!  Reference file %s and output file %s differ. MORE INFO "%(reffile, expected_outfile)
+                print("TEST FAILED!!  Reference file %s and output file %s differ. MORE INFO "%(reffile,expected_outfile)
                       +"ON DIFFERENCE (the two mismatched lines or an error message): '%s', '%s'"%file_comparison_result)
                 return 1
         # make sure there aren't any extra output files without reference files
