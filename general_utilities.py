@@ -340,6 +340,11 @@ def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True,
 
 ######################################## NUMERIC DATA MANIPULATION ########################################
 
+def int_or_float(x):
+    """ Return int(x) if it's equal to x, else return x (useful to convert whole-number float to int). """
+    if int(x) == x:     return int(x)
+    else:               return x
+
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
 
 def clean_number(val,replace_NaN,replace_Inf,replace_NegInf,make_positive=False):
@@ -765,6 +770,13 @@ class Testing_everything(unittest.TestCase):
         def test_function(obj,val):  
             obj.z = val
         self.assertRaises(TypeError, test_function, a, 10)
+
+    def test__int_or_float(self):
+        for bad_input in ['a', [], [1,2,3]]:
+            self.assertRaises((ValueError,TypeError), int_or_float, bad_input)
+        assert int_or_float(3) == 3
+        assert int_or_float(3.0) == 3
+        assert int_or_float(3.5) == 3.5
 
     def test__find_local_maxima_by_width(self):
         # basic functionality - find the local maximum
