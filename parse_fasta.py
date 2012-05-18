@@ -18,18 +18,13 @@ debug = 0
 
 def print_seq(line):
     """ printing help function - takes (header,seq) tuples from fasta, or line strings from text. """
-    # if the line is a string, just pretend it's all header (will get printed straight)
+    # if the line is a string instead of a (header,seq) tuple, just print it
     if isinstance(line,str):
-        header,seq = line,''
+        print line
     # otherwise you got a (header,seq) tuple
     else:
         (header,seq) = line
-    if header and seq:   
         print ">%s\n%s"%(header,seq)
-    elif seq:
-        print "%s"%seq
-    elif header:
-        print "%s"%header
 
 def parse_fasta(input):
     """ Usage: for (header,seq) in parse_fasta(input): <do stuff>. Input can be a filename or generator. """
@@ -37,12 +32,12 @@ def parse_fasta(input):
     # If the input is a filename, open it first
     if type(input)==str:    input = open(input)
     for line in input:
-        # skip empty lines
-        if not line.strip():    continue
+        # DON'T skip empty lines - there may be empty sequences in the file!
+        #if not line.strip():    continue
         # if you find a header line, return the previous entry and start a new one
         # (unless there is no previous entry containing both a header and a sequence)
-        elif line[0]=='>':
-            if header and seq:   
+        if line and line[0]=='>':
+            if header:   
                 yield (header,seq)
             header = line[1:].strip()      # line[1:] to get rid of the initial >
             seq = ''
