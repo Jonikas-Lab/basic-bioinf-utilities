@@ -17,6 +17,7 @@ def read_input():
         # check if they're a list of files (i.e. if first arg is a valid filename - good enough)
         # if yes, print the outputs one by one, with file names.
         # TODO this is an issue with large files, since it tries to read the whole thing into memory.
+        # TODO maybe I could just return the open file (or a fileinput thing) instead of the list of lines?
         if os.path.lexists(arguments[0]):
             if debug:   print "Processing input as a list of files..."
             if debug:   print "\t%s"%'\n\t'.join(arguments)
@@ -38,4 +39,5 @@ def read_input():
 ### If called directly, test everything
 if __name__ == '__main__':
     input = read_input()
+    # TODO what's '\b'?
     print '\b'.join(input)

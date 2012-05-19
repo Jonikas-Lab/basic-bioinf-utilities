@@ -64,6 +64,7 @@ def seq_count_and_lengths(infiles, total_seq_number_only=False, input_collapsed_
         #   If fastq fauls with a "file isn't fastq" exception, print the info and BOTH exceptions and exit.
         # Note that the HTSeq FastaReader/FastqReader fails when you try to do something, not when you initiate it!
         #   (so I have to actually run _get_count_and_lengths inside this try/except, instead of just defining the reader)
+        # TODO actually this doesn't count empty sequences correctly! It only counts 1 0-length sequence even when there are many (see test_inputs/test.fa).  Fix that?
         try:    
             file_seqcount = _get_count_and_lengths(FastaReader(infile), seqlen_counter, input_collapsed_to_unique)
             if verbosity>1: 
