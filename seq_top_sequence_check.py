@@ -18,7 +18,9 @@ from deepseq_utilities import get_seq_count_from_collapsed_header
 def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_to_print=None, input_collapsed_to_unique=False):
     """ See module docstring and optparse option help messages, to avoid repeating the info. """
 
-    seqlen_info = ' first %sbp'%seq_length if seq_length else ''
+    if seq_length is None:  seqlen_info = ''
+    elif seq_length>0:      seqlen_info = ' first %sbp'%seq_length
+    elif seq_length<0:      seqlen_info = ' last %sbp'%(-seq_length)
 
     for infile in infiles:
         # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
@@ -38,7 +40,8 @@ def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_t
 
         for sequence in infile_reader: 
             N_seqs = get_seq_count_from_collapsed_header(sequence.name) if input_collapsed_to_unique else 1
-            subsequence = sequence.seq[0:seq_length]
+            if seq_length > 0:  subsequence = sequence.seq[0:seq_length]
+            else:               subsequence = sequence.seq[seq_length:]
             seq_counter[subsequence] += N_seqs
 
         seq_list_by_count = sorted(seq_counter.items(), key=lambda (s,c): c, reverse=True)
@@ -73,7 +76,8 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser(__doc__)
     parser.add_option('-l','--seq_length', type='int', default=None, metavar='X',
-                      help="Print most common Xbp prefixes (None - full sequences) (default %default).")
+                      help="Print most common Xbp prefixes (if X is positive) or suffixes (if X is negative) "
+                          +"(None - full sequences) (default %default).")
     parser.add_option('-n','--n_to_print', type='int', default=3, metavar='N',
                       help="Print the N most common sequences (default %default).")
     parser.add_option('-m','--min_percent_to_print', type='int', default=None, metavar='M',
