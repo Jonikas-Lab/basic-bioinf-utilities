@@ -132,6 +132,21 @@ def invert_dict_tolists(input_dict):
         inverted_dict[value].add(key)
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
 
+def invert_listdict_nodups(input_dict):
+    """ Given a dict with non-overlapping list/set values, return single_value:key dict: {a:[1,2],b:[3]} -> {1:a,2:a,3:b}.
+    """
+    inverted_dict = {}
+    for key,value_list in input_dict.iteritems():
+        try:
+            for value in value_list:
+                if value in inverted_dict:
+                    raise ValueError("This method can't invert a dictionary with duplicate values! "
+                                     +"Use invert_listdict_tolists.")
+                inverted_dict[value] = key
+        except TypeError:
+            raise ValueError("invert_listdict_nodups expects all input_dict values to be lists/sets/etc!")
+    return inverted_dict
+
 def invert_listdict_tolists(input_dict):
     """ Given a dict with list/set values, return single_value:key_list dict: {a:[1,2],b:[2]]} -> {1:[a],2:[a,b]}."""
     inverted_dict = defaultdict(lambda: set())
@@ -142,6 +157,8 @@ def invert_listdict_tolists(input_dict):
         except TypeError:
             raise ValueError("invert_listdict_tolists expects all input_dict values to be lists/sets/etc!")
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
+
+# MAYBe-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
 
 class keybased_defaultdict(defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
@@ -736,12 +753,23 @@ class Testing_everything(unittest.TestCase):
         assert invert_dict_tolists({1:2,3:4}) == {2:set([1]),4:set([3])}
         assert invert_dict_tolists({1:2,3:2}) == {2:set([1,3])}
 
+    def test__invert_listdict_nodups(self):
+        assert invert_listdict_nodups({}) == {}
+        assert invert_listdict_nodups({1:[2],3:[4]}) == {2:1,4:3}
+        assert invert_listdict_nodups({1:[2],3:[4,6]}) == {2:1,4:3,6:3}
+        assert invert_listdict_nodups({1:[2,8],3:[4,6]}) == {2:1,8:1,4:3,6:3}
+        # no duplicates
+        self.assertRaises(ValueError, invert_listdict_nodups, {1:[2,2],3:[4]})
+        self.assertRaises(ValueError, invert_listdict_nodups, {1:[2,4],3:[2]})
+        # values must be lists/sets
+        self.assertRaises(ValueError, invert_listdict_nodups, {1:2,3:2})
+
     def test__invert_listdict_tolists(self):
         assert invert_listdict_tolists({}) == {}
         assert invert_listdict_tolists({1:[2],3:[4]}) == {2:set([1]),4:set([3])}
         assert invert_listdict_tolists({1:[2],3:[2]}) == {2:set([1,3])}
         assert invert_listdict_tolists({1:[2,4],3:[2]}) == {2:set([1,3]),4:set([1])}
-        self.assertRaises(ValueError, invert_dict_nodups, {1:2,3:2})
+        self.assertRaises(ValueError, invert_listdict_tolists, {1:2,3:2})
 
     def test__keybased_defaultdict(self):
         D_nodefault = keybased_defaultdict(None)
