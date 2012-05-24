@@ -34,8 +34,8 @@ def parse_fasta(input):
     for line in input:
         # DON'T skip empty lines - there may be empty sequences in the file!
         #if not line.strip():    continue
-        # if you find a header line, return the previous entry and start a new one
-        # (unless there is no previous entry containing both a header and a sequence)
+        # if you find a header line, start a new entry, first yielding the previous entry
+        # (unless there is no previous entry, i.e no header, since a sequence can be empty)
         if line and line[0]=='>':
             if header:   
                 yield (header,seq)
@@ -52,8 +52,9 @@ def parse_fasta(input):
             if not header: 
                 sys.exit("Error: Found a sequence line without a header first! %s"%line)
     if type(input)==file:    input.close()
-    # also return the last entry!
-    yield (header,seq)
+    # also return the last entry, if it's non-empty!
+    if header:
+        yield (header,seq)
 
 ### If called directly, test everything
 if __name__ == '__main__':
