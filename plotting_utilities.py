@@ -7,6 +7,7 @@ Various plotting utilities I wrote (usually for matplotlib) - see docstring for 
 import matplotlib.pyplot as mplt
 import unittest
 
+# For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
 ################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
 
