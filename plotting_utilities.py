@@ -4,10 +4,41 @@ Various plotting utilities I wrote (usually for matplotlib) - see docstring for 
  -- Weronika Patena, 2010-2012
 """
 
-import matplotlib.pyplot as mplt
+# standard library
+import itertools
 import unittest
+# other packages
+import matplotlib.pyplot as mplt
 
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
+
+################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
+
+def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0.7, colors='bgrcmy'):
+    """ Plot list_of_sample_category_lists as a stacked bar plot (all categories per sample on top of each other). 
+    Return list of plot_bar objects, to use in legend (like this: "mplt.legend(plot_bar_list, name_list)"). 
+    """
+    if not len(set([len(category_list) for category_list in list_of_sample_category_lists])) == 1:
+        raise ValueError("All lists in list_of_sample_category_lists must be the same length!")
+    if sample_names and not len(sample_names)==len(list_of_sample_category_lists):
+        raise ValueError("list_of_sample_category_lists and sample_names must be the same length!")
+    N_samples = len(list_of_sample_category_lists)
+    N_categories = len(list_of_sample_category_lists[0])
+    if not sample_names:
+        sample_names = ['' for _ in range(N_samples)]
+    positions = range(N_samples)
+    category_bars_for_legend = []
+    bar_bottoms = [0 for _ in sample_names]
+    for category_N, color in zip(range(N_categories), itertools.cycle(colors)):
+        category_values = [sample_category_list[category_N] for sample_category_list in list_of_sample_category_lists]
+        plot_bars = mplt.bar(positions, category_values, bottom=bar_bottoms, color=color, width=bar_width)
+        bar_bottoms = [x+y for (x,y) in zip(bar_bottoms,category_values)]
+        category_bars_for_legend.append(plot_bars[0])
+    mplt.xticks([p + bar_width/2 for p in positions], sample_names)
+    mplt.xlim(-(1-bar_width), mplt.xlim()[1])
+    return category_bars_for_legend
+
+
 
 ################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
 
