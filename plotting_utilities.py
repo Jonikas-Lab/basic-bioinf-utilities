@@ -92,7 +92,7 @@ def convert_data_to_linlog(dataset,cutoff=10):
     return dataset_linlog
 # TODO now how to label it correctly?  Basically first make the graph, get the resulting tick values, and run convert_data_to_linlog on them to get the tick labels.
 # the fuctions is mplt.yticks([0,1,2,5,10,20,30,40],['0','1','2','5','10','100','1000','10000'])
-# TODO maybe put a transition mark where the scale changes from lin to log?
+# TODO maybe put a transition mark where the scale changes from lin to log?  see http://stackoverflow.com/questions/5656798/python-matplotlib-is-there-a-way-to-make-a-discontinuous-axis for axis discontinuities.
 
 
 if __name__=='__main__':

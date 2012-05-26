@@ -10,7 +10,6 @@ all the (header, seq) pairs of a fasta file, to use like this:
 >> for (header,seq) in parse_fasta(open(infile)): <do stuff>
 """
 
-import read_input
 import sys
 from string import maketrans
 
@@ -59,5 +58,6 @@ def parse_fasta(input):
 ### If called directly, test everything
 if __name__ == '__main__':
     # TODO unfortunately if the file's wrong read_input will still read it whole before noticing!  But if the parse_fasta function is called directly, it can be given a filename and read it line-by-line.
+    import read_input
     input = read_input.read_input()
     for (header,seq) in parse_fasta(input):     print_seq((header,seq))        # nice printing

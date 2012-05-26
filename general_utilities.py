@@ -247,9 +247,6 @@ def reversibly_immutable(wrapped_class):
 
 ### Read various file types
 
-# general function for reading input from various sources
-from read_input import read_input
-
 def read_two_column_file(filename,numerical_values=True):
     """ Read in a two-column (name,value) tab-separated file (ignore #-comment lines), return data:float(value) dict. """
     data_dict = {}
@@ -320,7 +317,7 @@ def save_line_list_as_file(line_list, filename, header="", add_newlines=True):
 
 def write_header_data(OUTFILE,options=None):
     """ Print general script run data (command, path, date/time, full optparse options, etc) to given open file object."""
-    import sys,os,pwd,time,socket
+    import pwd,time,socket
     OUTFILE.write("# Command line this file was generated with: %s\n"%(' '.join(sys.argv)))
     OUTFILE.write("# Path: %s\n"%(os.getcwd()))
     OUTFILE.write("# Date: %s,\t\tUser: %s,\t\tSystem: %s\n"%(time.ctime(), pwd.getpwuid(os.getuid())[0], 

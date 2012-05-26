@@ -5,7 +5,6 @@ Weronika Patena, nov2008
 """
 
 import complement
-import read_input,transform_sequence_input,parse_fasta
 
 ### The actual reverse-complement function:
 def reverse_complement(input_sequence,input_type=''):
@@ -18,6 +17,7 @@ def reverse_complement(input_sequence,input_type=''):
 ### If called directly:
 # try reading the argument; if none given, read from stdin (which is what makes it work with pipes (echo ctcgag | script.py) and when called on a selection in vi and such). 
 if __name__ == '__main__':
+    import read_input,transform_sequence_input,parse_fasta
     # check if input is a list of files (i.e. if first arg is a valid filename - good enough)
     input = read_input.read_input()
     # transform_sequence_input takes an input AND the function to apply to it - in this case rev-compl

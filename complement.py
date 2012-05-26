@@ -5,7 +5,6 @@ Weronika Patena, nov2008
 """
 
 import string
-import read_input,transform_sequence_input,parse_fasta
 
 debug = 0
 
@@ -58,6 +57,7 @@ def complement(input_sequence,input=''):
 
 ### If called directly, read, parse and complement the input.
 if __name__ == '__main__':
+    import read_input,transform_sequence_input,parse_fasta
     input = read_input.read_input()
     for line in transform_sequence_input.transform_sequence_input(input,complement):
         parse_fasta.print_seq(line)

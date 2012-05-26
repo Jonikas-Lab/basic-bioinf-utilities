@@ -11,7 +11,6 @@ from collections import defaultdict
 # other libraries
 from HTSeq import FastaReader, FastqReader
 # my modules
-from seq_count_and_lengths import _format_lengths
 from deepseq_utilities import get_seq_count_from_collapsed_header
 
 

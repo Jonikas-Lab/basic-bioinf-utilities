@@ -4,8 +4,6 @@ This program takes one DNA sequence as an argument, prints the reverse.
 Weronika Patena, nov2008
 """
 
-import read_input,transform_sequence_input,parse_fasta
-
 ### The actual reverse function:
 def reverse(input_seq):
     reverse_seq = input_seq[::-1]
@@ -14,6 +12,7 @@ def reverse(input_seq):
 ### If called directly:
 # try reading the argument; if none given, read from stdin (which is what makes it work with pipes (echo ctcgag | script.py) and when called on a selection in vi and such). 
 if __name__ == '__main__':
+    import read_input,transform_sequence_input,parse_fasta
     # check if input is a list of files (i.e. if first arg is a valid filename - good enough))
     input = read_input.read_input()
     # transform_sequence_input takes an input AND the function to apply to it - in this case reverse()
