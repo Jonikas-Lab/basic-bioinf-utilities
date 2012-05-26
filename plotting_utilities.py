@@ -8,6 +8,16 @@ import matplotlib.pyplot as mplt
 import unittest
 
 
+################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
+
+def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
+    """ Change the color of the frame/ticks/ticklabels of plot_axes (a matplotlib.axes.AxesSubplot object) to color. """
+    # source: http://stackoverflow.com/questions/7778954/elegantly-changing-the-color-of-a-plot-frame-in-matplotlib
+    if color_frame:         mplt.setp(plot_axes.spines.values(), color=color)
+    if color_ticks:         mplt.setp([plot_axes.get_xticklines(), plot_axes.get_yticklines()], color=color)
+    if color_ticklabels:    mplt.setp([plot_axes.get_xticklabels(), plot_axes.get_yticklabels()], color=color)
+
+
 ################## OLD FUNCTIONS, moved from general_utilities.py
 
 def plot_function_by_window_size(data,window_size_list,function,figsize=(),title='',xlabel='',xlim=None,ylim=None,yticks=None,ylabel=''):
