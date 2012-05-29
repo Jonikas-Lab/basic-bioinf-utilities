@@ -8,6 +8,13 @@
 import unittest
 
 
+################## constants ################## 
+
+# Biopython fastq quality encodings (standard Phred+33 one, new Illumina Phred+64 one, old Illumina nonPhred+64)
+# Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
+FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
+
+
 ################## fasta/fastq (raw data) utilities ################## 
 
 def parse_fastq(infile):
