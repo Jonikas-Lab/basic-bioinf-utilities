@@ -246,6 +246,8 @@ def reversibly_immutable(wrapped_class):
 ######################################## FILE READING/WRITING, COMMAND-LINE STUFF  ########################################
 
 ### Read various file types
+# MAYBE-TODO Or I could just use numpy.genfromtext or such for all this...
+#    data = numpy.genfromtxt("test.csv",names=True,delimiter=",",dtype=None)
 
 def read_two_column_file(filename,numerical_values=True):
     """ Read in a two-column (name,value) tab-separated file (ignore #-comment lines), return data:float(value) dict. """

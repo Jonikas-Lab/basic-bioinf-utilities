@@ -71,28 +71,11 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
     # TODO how would one even test this?
 
 
-### Convert data into linlog scale (slightly weird, for plotting) - OLD CODE, STILL IN PROGRESS, will pick it back up if it's needed for anything.
-# for example, if cutoff=10, what we want is: 1->1, 2->2, 5->5, 10->10, 100->20, 1000->30, 10000->40, ...
-#  if cutoff=100, what we want is: 1->1, 2->2, 5->5, 10->10, 50->50, 100->100, 1000->200, 10000->300, 100000->400, ...
-#  if cutoff=1, what we want is: 1->1, 10->2, 100->3, 1000->4, ...
-# TODO this should probably just return a graph instead of the values!  Since there's no conceivable use for this except for graphing.  And then I could make the graph have extra features, like ticks/labels and a lin/log transition mark.
-### TODO this example shows the proper way of implementing a custom scale in matplotlib: 
-# http://matplotlib.sourceforge.net/examples/api/custom_scale_example.html
-# also see StackOverflow: http://stackoverflow.com/questions/6382612/python-equivalent-for-matlabs-normplot/6382851#6382851
-def convert_data_to_linlog(dataset,cutoff=10):
-    """ Convert the data (list of numbers) for correct plotting on a scale that's linear up to cutoff and log afterward."""
-    from math import log10
-    cutoff=float(cutoff)
-    dataset_linlog = []
-    for x in dataset:
-        if x <= cutoff:
-            dataset_linlog.append(x)
-        else:
-            dataset_linlog.append((log10(x/cutoff)+1)*cutoff)
-    return dataset_linlog
-# TODO now how to label it correctly?  Basically first make the graph, get the resulting tick values, and run convert_data_to_linlog on them to get the tick labels.
-# the fuctions is mplt.yticks([0,1,2,5,10,20,30,40],['0','1','2','5','10','100','1000','10000'])
-# TODO maybe put a transition mark where the scale changes from lin to log?  see http://stackoverflow.com/questions/5656798/python-matplotlib-is-there-a-way-to-make-a-discontinuous-axis for axis discontinuities.
+### Convert data into "linlog" scale for plotting (linear for some small range around 0, log after that)
+# Note: there used to be an old in-progress implementation of this here, called convert_data_to_linlog, but I removed it on 2012-05-30. 
+# The right thing to do is use the "symlog" scale in xscale/yscale, with the appropriate linthreshx/linthreshy (also allows negative values):
+# - http://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
+# - http://matplotlib.sourceforge.net/examples/pylab_examples/symlog_demo.html
 
 
 if __name__=='__main__':
