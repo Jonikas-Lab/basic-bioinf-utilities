@@ -219,7 +219,7 @@ def run_functional_tests(list_of_test_data, option_parser, function_to_run, test
                 return 1
             with open(reffile,'r') as REFFILE:
                 with open(expected_outfile,'r') as OUTFILE:
-                    file_comparison_result = compare_files_with_regex(OUTFILE, REFFILE)
+                    file_comparison_result = compare_files_with_regex(REFFILE, OUTFILE)
             if file_comparison_result==True:
                 os.remove(expected_outfile)
             else:
@@ -381,6 +381,8 @@ class Testing__everything(unittest.TestCase):
                     with open(file3,'r') as F3:
                         assert compare_files_with_regex(FILE1, F3, ignore_empty_lines=v1, 
                                                         ignore_whitespace=v2, ignore_case=v3) != True
+            # MAYBE-TODO note that theoretically compare_files_with_regex is symmetrical 
+            #  (order of file1, file2 doesn't matter), but do I actually test that?  Maybe I should.
 
 
 if __name__=='__main__':
