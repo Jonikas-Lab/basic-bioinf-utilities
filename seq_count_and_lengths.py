@@ -106,22 +106,22 @@ def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False,
 class Testing(unittest.TestCase):
     """ Unit-tests this module. """
 
-    def test___get_count_and_lengths__empty(self):
+    def test__seq_count_and_lengths__empty(self):
         for empty_iterator in [[], (), set(), iter([])]:
             assert seq_count_and_lengths(empty_iterator, count_only=False) == (0, {})
             assert seq_count_and_lengths(empty_iterator, count_only=True) == (0, {})
 
-    def test___get_count_and_lengths__single_length(self):
+    def test__seq_count_and_lengths__single_length(self):
         for LEN in [0, 1, 3, 10, 100, 1000, 10000]:
             for N in [1, 3, 10, 100, 1000, 10000]:
                 assert seq_count_and_lengths(['A'*LEN]*N, count_only=False) == (N, {LEN:N})
                 assert seq_count_and_lengths(['A'*LEN]*N, count_only=True)  == (N, {})
 
-    def test___get_count_and_lengths__multi_length(self):
+    def test__seq_count_and_lengths__multi_length(self):
         assert seq_count_and_lengths(['AAA', 'AAA', 'A'], count_only=False) == (3, {1:1, 3:2})
         assert seq_count_and_lengths(['AAA', 'AAA', 'A'], count_only=True)  == (3, {})
 
-    def test___get_count_and_lengths__input_collapsed_to_unique(self):
+    def test__seq_count_and_lengths__input_collapsed_to_unique(self):
         class Fake_seq(): 
             def __init__(self, name, length):   self.name, self.length = name, length
             def __len__(self):                  return self.length
@@ -132,6 +132,8 @@ class Testing(unittest.TestCase):
         seqs = [Fake_seq('1-10', 1), Fake_seq('2-20', 2), Fake_seq('3-30', 3)]
         assert seq_count_and_lengths(seqs, input_collapsed_to_unique=False)  == (3, {1:1, 2:1, 3:1})
         assert seq_count_and_lengths(seqs, input_collapsed_to_unique=True)  == (60, {1:10, 2:20, 3:30})
+
+    # MAYBE-TODO add unit-test for _format_lengths?
 
     def test__main(self):
         # FUNCTION SIGNATURE: main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
