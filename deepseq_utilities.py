@@ -17,6 +17,7 @@ FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
 
 ################## fasta/fastq (raw data) utilities ################## 
 
+# Note: normally it's probably better to parse fastq using biopython or HTSeq or such!  But it can be convenient to have a simple locally defined function with no dependencies requiring installation, so I'll keep this.
 def parse_fastq(infile):
     """ Given a fastq file, yield successive (header,sequence,quality) tuples. """
     with open(infile) as INFILE:
@@ -41,8 +42,6 @@ def parse_fastq(infile):
 
             yield (header, seq, qual)
 
-    # TODO add unit-test?
-
 
 def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
     """ Given a sequence header from fastx_collapser, return the original sequence count ('>1-243' means 243 sequences).
@@ -56,10 +55,12 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
     if return_1_on_failure: 
         return 1
     else:                   
-        raise ValueError("Can't parse header %s to get original pre-fasxt_collapser sequence count!"%header)
+        raise ValueError("Can't parse header %s to get original pre-fastx_collapser sequence count!"%header)
     
 
 ################## aligned data utilities ################## 
+
+### NOTE: I'm currently using HTSeq for parsing SAM-format data, but I could try something else - pysam seems good.
 
 # SAM and GFF are 1-based, with the end being the last base; HTSeq is 0-based, with the end being the base AFTER last.
 
@@ -88,7 +89,7 @@ CIGAR_TYPES_NOOP = ['S','H','P']
 CIGAR_TYPES_MUTATION = ['X','I','D']
 CIGAR_TYPES_INTRON = ['N']     # 'N' is for introns, but we shouldn't be paying attention to those for genomic DNA seq
 CIGAR_TYPES_UNKNOWN = ['M']
-# MAYBE-TODO HTSeq doesn't appear aware of the = and X operations...  http://www-huber.embl.de/users/anders/HTSeq/doc/alignments.html#HTSeq.CigarOperation  - I emailed the author about it
+# MAYBE-TODO HTSeq doesn't appear aware of the = and X operations...  http://www-huber.embl.de/users/anders/HTSeq/doc/alignments.html#HTSeq.CigarOperation  - I emailed the author about it, no response
 
 ### Getting mutation counts from various SAM alignment format fields, as read by HTSeq
 
@@ -226,6 +227,25 @@ class Fake_deepseq_objects:
 
 class Testing(unittest.TestCase):
     """ Unit-tests for all the functions/classes in this module. """
+
+    def test__parse_fastq(self):
+        # need to actually run through the whole iterator to test it - defining it isn't enough
+        def parse_fastq_get_first_last(infile):
+            seq_iter = parse_fastq(infile)
+            seq1 = seq_iter.next()
+            for seq in seq_iter:    
+                seqN = seq
+            return seq1, seqN
+        # checking first and last record of test_inputs/test.fq
+        seq1, seqN = parse_fastq_get_first_last("test_inputs/test.fq")
+        assert seq1 == ("ROCKFORD:4:1:1680:975#0/1", "NCTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA", 
+                        "BRRRQWVWVW__b_____^___bbb___b_______")
+        assert seqN == ("ROCKFORD:4:1:3367:975#0/1", "NCTAAGGCAGATGGACTCCACTGAGGTTGGAACCAA", 
+                        "BQQQNWUWUUbbb_bbbbbbbbb__b_bb_____b_") 
+        # non-fastq input files
+        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/test.fa")
+        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/textcmp_file1.txt")
+
 
     def test__check_mutation_count_by_CIGAR_string(self):
         # no alignment (CIGAR is None)
