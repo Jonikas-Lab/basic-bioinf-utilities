@@ -57,8 +57,8 @@ def _format_lengths(seqlen_dict, include_zeros=False, verbosity=1):
 
 
 def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
-                          include_zeros=False, verbosity=1, OUTPUT=sys.stdout):
-    """ Given a list of fastq/fasta files, return and print a list of seq lengths and counts and the total seq count.
+         include_zeros=False, verbosity=1, OUTPUT=sys.stdout):
+    """ Given a list of fastq/fasta files, return total seq number and a length:N dict; optionally print formatted info. 
     
     If total_seq_number_only is True, only return/print total seq count.
     If input_collapsed_to_unique is True, program assumes infile was preprocessed with fastx_collapser, 
@@ -100,7 +100,7 @@ def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False,
         formatted_output += _format_lengths(total_seqlen_dict, include_zeros, verbosity)
     if not OUTPUT is None:
         for line in formatted_output:   OUTPUT.write(line)
-    return formatted_output
+    return total_seqcount, total_seqlen_dict
             
 
 class Testing(unittest.TestCase):
@@ -125,13 +125,33 @@ class Testing(unittest.TestCase):
         class Fake_seq(): 
             def __init__(self, name, length):   self.name, self.length = name, length
             def __len__(self):                  return self.length
+        # sequences without a .name attribute or with one that doesn't have an encoded readcount cause an exception
         self.assertRaises(AttributeError, seq_count_and_lengths, ['AAA'], input_collapsed_to_unique=True)
         self.assertRaises(ValueError, seq_count_and_lengths, [Fake_seq('AAA', 3)], input_collapsed_to_unique=True)
+        # sequences with a .name and a length work
         seqs = [Fake_seq('1-10', 1), Fake_seq('2-20', 2), Fake_seq('3-30', 3)]
         assert seq_count_and_lengths(seqs, input_collapsed_to_unique=False)  == (3, {1:1, 2:1, 3:1})
         assert seq_count_and_lengths(seqs, input_collapsed_to_unique=True)  == (60, {1:10, 2:20, 3:30})
 
-    # TODO write unit-tests for main() on real infiles, too?
+    def test__main(self):
+        # FUNCTION SIGNATURE: main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
+        #                          include_zeros=False, verbosity=1, OUTPUT=sys.stdout)
+        quiet = dict(verbosity=0, OUTPUT=None)
+        test_fa, test_fq, with_counts = "test_inputs/test.fa", "test_inputs/test.fq", "test_inputs/with-counts.fa"
+        # wrong input file format (unrecognized extension)
+        self.assertRaises(SystemExit, main, ["test_inputs/textcmp_file2.txt"], **quiet)
+        # no input files = empty output
+        assert main([], **quiet) == (0, {})
+        # single input file
+        assert main([test_fa], **quiet) == (5, {0:2, 3:1, 5:1, 12:1})
+        assert main([test_fa], total_seq_number_only=True, **quiet) == (5, {})
+        assert main([test_fq], **quiet) == (7, {36:7})
+        # two input files
+        assert main([test_fq, test_fq], **quiet) == (14, {36:14})
+        assert main([test_fa,test_fq], **quiet) == (12, {0:2, 3:1, 5:1, 12:1, 36:7})
+        # input_collapsed_to_unique
+        assert main([with_counts], input_collapsed_to_unique=False, **quiet) ==  (5, {0:2, 3:1, 5:1, 12:1})
+        assert main([with_counts], input_collapsed_to_unique=True, **quiet) == (42, {0:11, 3:10, 5:20, 12:1})
 
 
 if __name__ == "__main__":
