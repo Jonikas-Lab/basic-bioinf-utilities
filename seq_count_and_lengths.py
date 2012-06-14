@@ -5,12 +5,21 @@ Given any number of fasta or fastq files, print a list of seq lengths and counts
 """
 
 # basic libraries
-import sys
+import sys, os
 from collections import defaultdict
 # other libraries
-from HTSeq import FastaReader, FastqReader
+from Bio import SeqIO
 # my modules
 from deepseq_utilities import get_seq_count_from_collapsed_header
+
+# global constants (basic form, processed later)
+FASTA_EXTENSIONS = "fa fas fasta"
+FASTQ_EXTENSIONS = "fq fastq"
+
+# processing global constants
+FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
+FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
+assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
 
 
 def _get_count_and_lengths(file_iterator, seqlen_counter=None, input_collapsed_to_unique=False):
@@ -59,29 +68,25 @@ def seq_count_and_lengths(infiles, total_seq_number_only=False, input_collapsed_
     formatted_output = []
     # add the numbers from each file to seqlen_counter (using HTSeq, which auto-detects filetype etc)
     for infile in infiles:
-        # FILETYPE RECOGNITION: first try Fasta: if it works, good. If it fails with some random error, raise it. 
-        #   If it fails with a "file isn't fasta" exception, try fastq.  If fastq failse with some random error, raise it.
-        #   If fastq fauls with a "file isn't fastq" exception, print the info and BOTH exceptions and exit.
-        # Note that the HTSeq FastaReader/FastqReader fails when you try to do something, not when you initiate it!
-        #   (so I have to actually run _get_count_and_lengths inside this try/except, instead of just defining the reader)
-        # TODO actually this doesn't count empty sequences correctly! It only counts 1 0-length sequence even when there are many (see test_inputs/test.fa).  Fix that?
-        try:    
-            file_seqcount = _get_count_and_lengths(FastaReader(infile), seqlen_counter, input_collapsed_to_unique)
-            if verbosity>1: 
-                formatted_output.append("File %s recognized as fasta, with %s total seqs.\n"%(infile,file_seqcount))
-        except (ValueError,AssertionError) as fasta_error_msg:
-            if not str(fasta_error_msg).count("FASTA file does not start with"):  raise 
-            try:    
-                file_seqcount = _get_count_and_lengths(FastqReader(infile,qual_scale="solexa"), 
+        # detect filetype based on extension
+        #  MAYBE-TODO add command-line options that force the format to fasta/fastq instead of checking by extension?
+        #  MAYBE-TODO could try implementing auto-detection, but I'm not sure that's a good idea
+        extension = os.path.splitext(infile)[1][1:]
+        with open(infile) as INFILE:
+            if extension in FASTA_EXTENSIONS:
+                if verbosity>1:     formatted_output.append("File %s recognized as fasta.\n"%infile)
+                file_seqcount = _get_count_and_lengths(SeqIO.parse(INFILE, "fasta"), 
                                                        seqlen_counter, input_collapsed_to_unique)
-                if verbosity>1: 
-                    formatted_output.append("File %s recognized as fastq, with %s total seqs.\n"%(infile,file_seqcount))
-            except (ValueError,AssertionError) as fastq_error_msg:
-                if not str(fastq_error_msg).count("this is not FASTQ data"):   raise
-                sys.exit("Error: input file %s is not recognized as either fasta or fastq. \
-                         \n\tFasta error message: %s \n\tFastq error message: %s"\
-                         %(infile,fasta_error_msg,fastq_error_msg))
+            elif extension in FASTQ_EXTENSIONS:
+                if verbosity>1:     formatted_output.append("File %s recognized as fastq.\n"%infile)
+                # note: always using the "fastq" encoding, because we're not dealing with qualities so it doesn't matter
+                file_seqcount = _get_count_and_lengths(SeqIO.parse(INFILE, "fastq"), 
+                                                       seqlen_counter, input_collapsed_to_unique)
+            else:
+                sys.exit("File %s has an unknown extension %s! Allowed extensions are fasta (%s) and fastq (%s)."%(infile, 
+                                                      extension, ', '.join(FASTA_EXTENSIONS), ', '.join(FASTQ_EXTENSIONS)))
         total_seqcount += file_seqcount
+
     # format and print (optionally) and return the output
     if total_seq_number_only:
         formatted_output.append("Total %s seqs\n"%total_seqcount)
@@ -92,7 +97,9 @@ def seq_count_and_lengths(infiles, total_seq_number_only=False, input_collapsed_
     return formatted_output
             
 
-# MAYBE-TODO should this have unit-tests?
+# TODO write run-tests!
+
+# MAYBE-TODO write unit-tests?
 
 
 if __name__ == "__main__":
@@ -116,4 +123,5 @@ if __name__ == "__main__":
         sys.exit("\nError: At least one argument file required.")
     infiles = args
 
-    seq_count_and_lengths(infiles, options.total_seq_number_only, options.input_collapsed_to_unique, options.include_zeros, options.verbosity)
+    seq_count_and_lengths(infiles, options.total_seq_number_only, options.input_collapsed_to_unique, 
+                          options.include_zeros, options.verbosity)
