@@ -466,10 +466,14 @@ def find_local_maxima_by_width(data, N_surrounding_points=1, include_start_end=T
     """
     # I also have a full command-line program with options that's a wrapper around this function:
     #    find_local_maxima.py in ~/experiments/other_projects/local_maxima_detector_for_Ute
+
+    # I may be padding the data, so make a copy first! And convert to list - this fails on numpy arrays etc.
+    data = list(data)
     if include_start_end:
         padding = [min(data)] * N_surrounding_points
         data = padding + data + padding
-    else:   padding = []
+    else:   
+        padding = []
     local_maxima = []
     for i in range(N_surrounding_points, len(data)-N_surrounding_points):
         curr_value = data[i]
