@@ -361,6 +361,26 @@ def int_or_float(x):
     if int(x) == x:     return int(x)
     else:               return x
 
+
+def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g',
+                          exception_for_100='default'):
+    """ Return a string containing val and val as percentage of each total: 1,[2,3] -> "1 (50%, 33%)".
+
+    If fractions_not_percentages=True, 1,[2,3] -> "1 (0.5, 0.33)" instead.
+    percentage_format_str is the string used to format each percentage/fraction (in .X, X is the precision in digits).
+    If exception_for_100 is True, 100 is formatted as '100' rather than '1e+02' even if precision is 2.
+    If exception_for_100 is 'default', it's True for percentages with '%.2g' format but False otherwise and for fractions.
+    """ 
+    if exception_for_100=='default': 
+        exception_for_100 = True if (not fractions_not_percentages and percentage_format_str=='%.2g') else False
+    def _format_number(number):
+        if number==100 and exception_for_100:   return '100'
+        else:                                   return percentage_format_str%number
+    if fractions_not_percentages:   percentage_getter = lambda x,total: _format_number(x/total)
+    else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
+    return "%s (%s)"%(val, ', '.join([percentage_getter(val,total) for total in totals]))
+
+
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
 
 def clean_number(val,replace_NaN,replace_Inf,replace_NegInf,make_positive=False):
@@ -765,6 +785,25 @@ class Testing_everything(unittest.TestCase):
         assert int_or_float(3) == 3
         assert int_or_float(3.0) == 3
         assert int_or_float(3.5) == 3.5
+
+    def test__value_and_percentages(self):
+        assert value_and_percentages(1, [2], False) == "1 (50%)"
+        assert value_and_percentages(1, [2], True) == "1 (0.5)"
+        assert value_and_percentages(1, [2, 3, 100, 10000], False) == "1 (50%, 33%, 1%, 0.01%)"
+        assert value_and_percentages(1, [2, 3, 100, 10000], True) == "1 (0.5, 0.33, 0.01, 0.0001)"
+        assert value_and_percentages(1, [3, 7000], False, percentage_format_str='%.2g') == "1 (33%, 0.014%)"
+        assert value_and_percentages(1, [3, 7000], False, percentage_format_str='%.4g') == "1 (33.33%, 0.01429%)"
+        assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.2g') == "1 (0.33, 0.00014)"
+        assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.4g') == "1 (0.3333, 0.0001429)"
+        # exception_for_100 (default True for percentages with '%.2g' and False for fractions/otherwise)
+        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100='default') == "1 (100%)"
+        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=True) == "1 (100%)"
+        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=False) == "1 (1e+02%)"
+        assert value_and_percentages(1, [1], False, '%.1g', exception_for_100='default') == "1 (1e+02%)"
+        assert value_and_percentages(1, [1], True) == "1 (1)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', 'default') == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', False) == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', True) == "1 (100)"
 
     def test__find_local_maxima_by_width(self):
         # basic functionality - find the local maximum
