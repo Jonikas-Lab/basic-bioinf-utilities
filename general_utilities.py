@@ -362,12 +362,13 @@ def int_or_float(x):
     else:               return x
 
 
-def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g',
-                          exception_for_100='default'):
+def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g', 
+                          NA_for_zero_division=True, exception_for_100='default'):
     """ Return a string containing val and val as percentage of each total: 1,[2,3] -> "1 (50%, 33%)".
 
     If fractions_not_percentages=True, 1,[2,3] -> "1 (0.5, 0.33)" instead.
     percentage_format_str is the string used to format each percentage/fraction (in .X, X is the precision in digits).
+    If NA_for_zero_division is True, just print N/A for dividing-by-zero cases rather than raising an exception.
     If exception_for_100 is True, 100 is formatted as '100' rather than '1e+02' even if precision is 2.
     If exception_for_100 is 'default', it's True for percentages with '%.2g' format but False otherwise and for fractions.
     """ 
@@ -378,7 +379,9 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
         else:                                   return percentage_format_str%number
     if fractions_not_percentages:   percentage_getter = lambda x,total: _format_number(x/total)
     else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
-    return "%s (%s)"%(val, ', '.join([percentage_getter(val,total) for total in totals]))
+    if NA_for_zero_division:    full_percentage_getter = lambda x,total: 'N/A' if total==0 else percentage_getter(x,total)
+    else:                       full_percentage_getter = percentage_getter
+    return "%s (%s)"%(val, ', '.join([full_percentage_getter(val,total) for total in totals]))
 
 
 ### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
@@ -795,15 +798,19 @@ class Testing_everything(unittest.TestCase):
         assert value_and_percentages(1, [3, 7000], False, percentage_format_str='%.4g') == "1 (33.33%, 0.01429%)"
         assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.2g') == "1 (0.33, 0.00014)"
         assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.4g') == "1 (0.3333, 0.0001429)"
+        # NA_for_zero_division - if True, just print N/A for division-by-zero rather than raising an exception
+        for zero in (0, 0.0):
+            self.assertRaises(ZeroDivisionError, value_and_percentages, 1, [zero], NA_for_zero_division=False)
+            assert value_and_percentages(1, [zero], NA_for_zero_division=True) == "1 (N/A)"
         # exception_for_100 (default True for percentages with '%.2g' and False for fractions/otherwise)
         assert value_and_percentages(1, [1], False, '%.2g', exception_for_100='default') == "1 (100%)"
         assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=True) == "1 (100%)"
         assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=False) == "1 (1e+02%)"
         assert value_and_percentages(1, [1], False, '%.1g', exception_for_100='default') == "1 (1e+02%)"
         assert value_and_percentages(1, [1], True) == "1 (1)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', 'default') == "1 (1e+02)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', False) == "1 (1e+02)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', True) == "1 (100)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100='default') == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100=False) == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100=True) == "1 (100)"
 
     def test__find_local_maxima_by_width(self):
         # basic functionality - find the local maximum
