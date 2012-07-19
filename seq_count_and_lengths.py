@@ -58,7 +58,7 @@ def _format_lengths(seqlen_dict, include_zeros=False, verbosity=1):
 
 def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
          include_zeros=False, verbosity=1, OUTPUT=sys.stdout):
-    """ Given a list of fastq/fasta files, return total seq number and a length:N dict; optionally print formatted info. 
+    """ Given a list of fastq/fasta files, return total seq number, a length:N dict and formatted info (optionally print it)
     
     If total_seq_number_only is True, only return/print total seq count.
     If input_collapsed_to_unique is True, program assumes infile was preprocessed with fastx_collapser, 
@@ -100,7 +100,7 @@ def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False,
         formatted_output += _format_lengths(total_seqlen_dict, include_zeros, verbosity)
     if not OUTPUT is None:
         for line in formatted_output:   OUTPUT.write(line)
-    return total_seqcount, total_seqlen_dict
+    return total_seqcount, total_seqlen_dict, formatted_output
             
 
 class Testing(unittest.TestCase):
