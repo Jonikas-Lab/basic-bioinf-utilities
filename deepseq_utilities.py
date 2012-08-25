@@ -26,6 +26,25 @@ FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
 
 ################## fasta/fastq (raw data) utilities ################## 
 
+def check_fasta_fastq_format(infilename, verbose=False):
+    """ Check fasta/fastq format based on infilename extension; return "fasta" or "fastq", raise ValueError if neither. 
+
+    Note: the result can be used as the format argument to Bio.SeqIO, but for fastq ONLY if you don't care 
+     about the quality encoding (otherwise you should use one of FASTQ_QUALITY_ENCODINGS, not just "fastq").
+    """
+
+    import os
+    extension = os.path.splitext(infilename)[1][1:]
+    if extension in FASTA_EXTENSIONS:       seq_format = "fasta"
+    elif extension in FASTQ_EXTENSIONS:     seq_format = "fastq"
+    else:
+        raise ValueError("File %s has an unknown extension %s! Allowed extensions are fasta (%s) and fastq (%s)."%(
+                            infilename, extension, ', '.join(FASTA_EXTENSIONS), ', '.join(FASTQ_EXTENSIONS)))
+    if verbose:     
+        formatted_output.append("File %s recognized as %s.\n"%(infilename, seq_format))
+    return seq_format
+
+
 # Note: normally it's probably better to parse fastq using biopython or HTSeq or such!  But it can be convenient to have a simple locally defined function with no dependencies requiring installation, so I'll keep this.
 def parse_fastq(infile):
     """ Given a fastq file, yield successive (header,sequence,quality) tuples. """

@@ -5,13 +5,13 @@ Given any number of fasta or fastq files, print a list of seq lengths and counts
 """
 
 # standard library
-import sys, os
+import sys
 from collections import defaultdict
 import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header, FASTA_EXTENSIONS, FASTQ_EXTENSIONS
+from deepseq_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
 from general_utilities import add_dicts_of_ints
 
 
@@ -66,21 +66,11 @@ def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False,
     for infile in infiles:
         # detect filetype based on extension
         #  MAYBE-TODO add command-line options that force the format to fasta/fastq instead of checking by extension?
-        #  MAYBE-TODO could try implementing auto-detection, but I'm not sure that's a good idea
-        extension = os.path.splitext(infile)[1][1:]
+        seq_format = check_fasta_fastq_format(infile, verbosity>1)
+        # note: just using plain "fastq" quality encoding, because we're not dealing with qualities so it doesn't matter
         with open(infile) as INFILE:
-            if extension in FASTA_EXTENSIONS:
-                if verbosity>1:     formatted_output.append("File %s recognized as fasta.\n"%infile)
-                file_seqcount, file_seqlen_dict = seq_count_and_lengths(SeqIO.parse(INFILE, "fasta"), 
-                                                                        total_seq_number_only, input_collapsed_to_unique)
-            elif extension in FASTQ_EXTENSIONS:
-                if verbosity>1:     formatted_output.append("File %s recognized as fastq.\n"%infile)
-                # note: always using the "fastq" encoding, because we're not dealing with qualities so it doesn't matter
-                file_seqcount, file_seqlen_dict = seq_count_and_lengths(SeqIO.parse(INFILE, "fastq"), 
-                                                                        total_seq_number_only, input_collapsed_to_unique)
-            else:
-                sys.exit("File %s has an unknown extension %s! Allowed extensions are fasta (%s) and fastq (%s)."%(infile, 
-                                                      extension, ', '.join(FASTA_EXTENSIONS), ', '.join(FASTQ_EXTENSIONS)))
+            file_seqcount, file_seqlen_dict = seq_count_and_lengths(SeqIO.parse(INFILE, seq_format), 
+                                                                    total_seq_number_only, input_collapsed_to_unique)
         total_seqcount += file_seqcount
         total_seqlen_dict = add_dicts_of_ints(total_seqlen_dict, file_seqlen_dict)
 
