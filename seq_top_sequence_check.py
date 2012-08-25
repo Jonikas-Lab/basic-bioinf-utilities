@@ -9,9 +9,26 @@ NOTE: fastq file qualities will always be written using Sanger (+33) encoding! (
 import sys, os
 from collections import defaultdict
 # other libraries
-from HTSeq import FastaReader, FastqReader
+from Bio import SeqIO
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header, FASTA_EXTENSIONS, FASTQ_EXTENSIONS
+from deepseq_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
+
+
+def subsequence_counts(infile_reader, seq_length=None, input_collapsed_to_unique=False):
+    """ Given an iterator of Biopython seq objects and desired subsequence length/end, return subsequence:count dict.
+
+    seq_length: if None, take whole seq; if N>0, take first N bases, if N<0, take last -N bases.
+    If input_collapsed_to_unique is True, consider each sequence to be X reads, determined from seq.name, 
+     using the format used by fastx_collapser from FastX Toolkit.
+    """
+    seq_counter = defaultdict(lambda: 0)    # a counter with a default value of 0
+    for sequence in infile_reader: 
+        N_seqs = get_seq_count_from_collapsed_header(sequence.name) if input_collapsed_to_unique else 1
+        # using seq.data to convert Biopython Seq objects to plain strings - Seq objects aren't hashable correctly
+        if seq_length > 0:  subsequence = sequence.seq[0:seq_length].data
+        else:               subsequence = sequence.seq[seq_length:].data
+        seq_counter[subsequence] += N_seqs
+    return dict(seq_counter)
 
 
 def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_to_print=None, input_collapsed_to_unique=False):
@@ -22,24 +39,10 @@ def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_t
     elif seq_length<0:      seqlen_info = ' last %sbp'%(-seq_length)
 
     for infile in infiles:
-        # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
-        extension = os.path.splitext(infile)[1].lower()[1:]
-        if extension in FASTA_EXTENSIONS:   
-            infile_reader = FastaReader(infile)
-        elif extension in FASTQ_EXTENSIONS: 
-            infile_reader = FastqReader(infile,qual_scale="solexa")
-        else:       
-            sys.exit("Error: input file %s (extension %s) needs to have a %s extension to be recognized!"%(infile, 
-                                extension, '/'.join(fasta_extensions+fastq_extensions)))
+        seq_format = check_fasta_fastq_format(infile)
 
-        # a counter with a default value of 0
-        seq_counter = defaultdict(lambda: 0)
-
-        for sequence in infile_reader: 
-            N_seqs = get_seq_count_from_collapsed_header(sequence.name) if input_collapsed_to_unique else 1
-            if seq_length > 0:  subsequence = sequence.seq[0:seq_length]
-            else:               subsequence = sequence.seq[seq_length:]
-            seq_counter[subsequence] += N_seqs
+        with open(infile) as INFILE:
+            seq_counter = subsequence_counts(SeqIO.parse(INFILE, seq_format), seq_length, input_collapsed_to_unique)
 
         seq_list_by_count = sorted(seq_counter.items(), key=lambda (s,c): c, reverse=True)
 
