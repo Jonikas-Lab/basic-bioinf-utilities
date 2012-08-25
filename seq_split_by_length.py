@@ -16,6 +16,8 @@ from seq_count_and_lengths import _format_lengths
 from deepseq_utilities import get_seq_count_from_collapsed_header
 
 
+# TODO should switch to using Bio.SeqIO instead of HTSeq (see other seq_* programs) - HTSeq makes mistakes!
+
 def seq_split_by_length(infile, min_length=None, max_length=None, force_fasta_output=False, include_empty_files=False, 
                         ignore_zero_length_sequences=False, pad_filenames_for_sort=0, 
                         input_collapsed_to_unique=False, quiet=False):
