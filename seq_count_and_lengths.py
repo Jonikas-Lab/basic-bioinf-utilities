@@ -11,17 +11,8 @@ import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header
+from deepseq_utilities import get_seq_count_from_collapsed_header, FASTA_EXTENSIONS, FASTQ_EXTENSIONS
 from general_utilities import add_dicts_of_ints
-
-# global constants (basic form, processed later)
-FASTA_EXTENSIONS = "fa fas fasta"
-FASTQ_EXTENSIONS = "fq fastq"
-
-# processing global constants
-FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
-FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
-assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
 
 
 def seq_count_and_lengths(seq_iterator, count_only=False, input_collapsed_to_unique=False):

@@ -11,7 +11,7 @@ from collections import defaultdict
 # other libraries
 from HTSeq import FastaReader, FastqReader
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header
+from deepseq_utilities import get_seq_count_from_collapsed_header, FASTA_EXTENSIONS, FASTQ_EXTENSIONS
 
 
 def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_to_print=None, input_collapsed_to_unique=False):
@@ -23,12 +23,10 @@ def seq_top_sequence_check(infiles, seq_length=None, n_to_print=3, min_percent_t
 
     for infile in infiles:
         # file format recognition (I could do it by trying to use FastaReader/FastqReader on it, but it's annoying)
-        fasta_extensions = ['fa','fasta']
-        fastq_extensions = ['fq','fastq']
         extension = os.path.splitext(infile)[1].lower()[1:]
-        if extension in fasta_extensions:   
+        if extension in FASTA_EXTENSIONS:   
             infile_reader = FastaReader(infile)
-        elif extension in fastq_extensions: 
+        elif extension in FASTQ_EXTENSIONS: 
             infile_reader = FastqReader(infile,qual_scale="solexa")
         else:       
             sys.exit("Error: input file %s (extension %s) needs to have a %s extension to be recognized!"%(infile, 

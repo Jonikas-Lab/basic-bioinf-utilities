@@ -8,7 +8,16 @@
 import unittest
 
 
-################## constants ################## 
+################## global constants ################## 
+
+# global constants (basic form, processed later)
+FASTA_EXTENSIONS = "fa fas fasta"
+FASTQ_EXTENSIONS = "fq fastq"
+
+# processing global constants
+FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
+FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
+assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
 
 # Biopython fastq quality encodings (standard Phred+33 one, new Illumina Phred+64 one, old Illumina nonPhred+64)
 # Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
