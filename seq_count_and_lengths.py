@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """
-Given any number of fasta or fastq files, print a list of seq lengths and counts of seqs with that length (or just the total seq count).  The file type is detected automatically, using the HTSeq library FastaReader/FastqReader methods.
+Given any number of fasta or fastq files, print a list of seq lengths and counts of seqs with that length (or just the total seq count).  The file type is detected by filename extension.  Uses the Biopython package.
  --Weronika Patena, June 2011
 """
 
