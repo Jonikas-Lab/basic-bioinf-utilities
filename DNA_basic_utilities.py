@@ -24,6 +24,12 @@ SEQ_STRANDS = ['+','-']
 SEQ_DIRECTIONS = ['forward','reverse']
 SEQ_ORIENTATIONS = ['sense','antisense']
 
+### basic functions
+
+def write_fasta_line(seqname, seq, OUTFILE=sys.stdout):
+    """ Given a name and sequence, print in one-line fasta format to OUTFILE (default STDOUT). """
+    OUTFILE.write(">%s\n%s\n"%(seqname, seq))
+
 
 ### testing whether two sequences contain one another, or overlap (based purely on position, no sequence involved)
 
