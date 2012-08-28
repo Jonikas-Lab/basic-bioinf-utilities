@@ -8,83 +8,8 @@
 import unittest
 
 
-################## global constants ################## 
+## NOTE: for fasta/fastq (raw data) utilities see seq_basic_utilities.py
 
-# global constants (basic form, processed later)
-FASTA_EXTENSIONS = "fa fas fasta"
-FASTQ_EXTENSIONS = "fq fastq"
-
-# processing global constants
-FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
-FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
-assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
-
-# Biopython fastq quality encodings (standard Phred+33 one, new Illumina Phred+64 one, old Illumina nonPhred+64)
-# Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
-FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
-
-
-################## fasta/fastq (raw data) utilities ################## 
-
-def check_fasta_fastq_format(infilename, verbose=False):
-    """ Check fasta/fastq format based on infilename extension; return "fasta" or "fastq", raise ValueError if neither. 
-
-    Note: the result can be used as the format argument to Bio.SeqIO, but for fastq ONLY if you don't care 
-     about the quality encoding (otherwise you should use one of FASTQ_QUALITY_ENCODINGS, not just "fastq").
-    """
-
-    import os
-    extension = os.path.splitext(infilename)[1][1:]
-    if extension in FASTA_EXTENSIONS:       seq_format = "fasta"
-    elif extension in FASTQ_EXTENSIONS:     seq_format = "fastq"
-    else:
-        raise ValueError("File %s has an unknown extension %s! Allowed extensions are fasta (%s) and fastq (%s)."%(
-                            infilename, extension, ', '.join(FASTA_EXTENSIONS), ', '.join(FASTQ_EXTENSIONS)))
-    if verbose:     
-        formatted_output.append("File %s recognized as %s.\n"%(infilename, seq_format))
-    return seq_format
-
-
-# Note: normally it's probably better to parse fastq using biopython or HTSeq or such!  But it can be convenient to have a simple locally defined function with no dependencies requiring installation, so I'll keep this.
-def parse_fastq(infile):
-    """ Given a fastq file, yield successive (header,sequence,quality) tuples. """
-    with open(infile) as INFILE:
-        while True:
-            header = INFILE.next().strip()
-            try:
-                seq = INFILE.next().strip()
-                header2 = INFILE.next().strip()
-                qual = INFILE.next().strip()
-            except (StopIteration):
-                raise Exception("Input FastQ file is malformed! Last record didn't have all four lines!")
-
-            if not header[0]=='@':  
-                raise Exception("Malformed input fastq file! Expected seq-header line (@ start), found %s"%header)
-            if not header2[0]=='+':  
-                raise Exception("Malformed input fastq file! Expected qual-header line (+ start), found %s"%header2)
-            header,header2 = header[1:],header2[1:]
-            if not (len(header2)==0 or header==header2):   
-                raise Exception("Malformed input fastq file! Qual-header %s doesn't match seq-header %s"%(header2,header))
-            if not len(seq)==len(qual):             
-                raise Exception("Malformed input fastq file! Seq length doesn't match qual length (%s,%s)"%(seq, qual))
-
-            yield (header, seq, qual)
-
-
-def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
-    """ Given a sequence header from fastx_collapser, return the original sequence count ('>1-243' means 243 sequences).
-    If cannot parse the header, exits with an error message, unless return_1_on_failure is True (then returns 1). """
-    try:                        header_fields = header.split('-')
-    except AttributeError:      header_fields = [header]
-    if len(header_fields) > 1:
-        try:                    return int(header_fields[-1])
-        except ValueError:      pass
-    # if didn't find a '-' to split on, or couldn't get an int from the string, either return 1 or fail
-    if return_1_on_failure: 
-        return 1
-    else:                   
-        raise ValueError("Can't parse header %s to get original pre-fastx_collapser sequence count!"%header)
-    
 
 ################## aligned data utilities ################## 
 
@@ -262,25 +187,6 @@ class Fake_deepseq_objects:
 class Testing(unittest.TestCase):
     """ Unit-tests for all the functions/classes in this module. """
 
-    def test__parse_fastq(self):
-        # need to actually run through the whole iterator to test it - defining it isn't enough
-        def parse_fastq_get_first_last(infile):
-            seq_iter = parse_fastq(infile)
-            seq1 = seq_iter.next()
-            for seq in seq_iter:    
-                seqN = seq
-            return seq1, seqN
-        # checking first and last record of test_inputs/test.fq
-        seq1, seqN = parse_fastq_get_first_last("test_inputs/test.fq")
-        assert seq1 == ("ROCKFORD:4:1:1680:975#0/1", "NCTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA", 
-                        "BRRRQWVWVW__b_____^___bbb___b_______")
-        assert seqN == ("ROCKFORD:4:1:3367:975#0/1", "NCTAAGGCAGATGGACTCCACTGAGGTTGGAACCAA", 
-                        "BQQQNWUWUUbbb_bbbbbbbbb__b_bb_____b_") 
-        # non-fastq input files
-        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/test.fa")
-        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/textcmp_file1.txt")
-
-
     def test__check_mutation_count_by_CIGAR_string(self):
         # no alignment (CIGAR is None)
         fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment()
@@ -362,14 +268,6 @@ class Testing(unittest.TestCase):
         for opt_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}]:
             fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='M'*10, optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 1
-
-    def test__get_seq_count_from_collapsed_header(self):
-        for bad_header in ['aaa','aaa-aa', 'a-3-a', 'a-3a', '3-a','a+3','a:3','a 3','3',3,0,100,None,True,False,[],{}]:
-            assert get_seq_count_from_collapsed_header(bad_header, return_1_on_failure=True) == 1
-            self.assertRaises(ValueError, get_seq_count_from_collapsed_header, bad_header, return_1_on_failure=False) 
-        for header_prefix in ['a','a ','>a','> a','a b c','a-b-c','a-3-100']:
-            for count in [0,1,3,5,123214]:
-                assert get_seq_count_from_collapsed_header(header_prefix+'-'+str(count)) == count
 
 
 if __name__ == "__main__":

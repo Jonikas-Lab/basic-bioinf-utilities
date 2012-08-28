@@ -7,6 +7,7 @@ Weronika Patena, 2008-2010
 
 ### basic library
 import unittest
+import sys
 ### my modules
 # help functions
 from parse_fasta import parse_fasta,print_seq
@@ -17,18 +18,118 @@ from complement import complement
 from reverse_complement import reverse_complement
 from reverse import reverse
 
-### some constants 
+################## global constants ################## 
 
 SEQ_ENDS = ['5prime','3prime']
 SEQ_STRANDS = ['+','-']
 SEQ_DIRECTIONS = ['forward','reverse']
 SEQ_ORIENTATIONS = ['sense','antisense']
 
-### basic functions
+# the standard extensions for fasta/fastq files (basic form, processed later)
+FASTA_EXTENSIONS = "fa fas fasta"
+FASTQ_EXTENSIONS = "fq fastq"
+
+# Biopython fastq quality encodings (standard Phred+33 one, new Illumina Phred+64 one, old Illumina nonPhred+64)
+# Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
+FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
+
+################## end of global constants ################## 
+
+### processing global constants
+FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
+FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
+assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
+
+### basic fasta/fastq functions
 
 def write_fasta_line(seqname, seq, OUTFILE=sys.stdout):
     """ Given a name and sequence, print in one-line fasta format to OUTFILE (default STDOUT). """
     OUTFILE.write(">%s\n%s\n"%(seqname, seq))
+
+
+def name_seq_generator_from_fasta(fasta_infile):
+    """ Yield successive (name,seq) pairs read from fasta file. """
+    from Bio import SeqIO   # Bio is the biopython package
+    with open(fasta_infile) as INFILE:
+        for record in SeqIO.parse(INFILE, 'fasta'):
+            # record.seq is a biopython Seq object, record.seq.data is a string, which is what we want
+            yield record.name, record.seq.data
+
+
+def name_seq_generator_from_fastq(fastq_infile):
+    """ Yield successive (name,seq) pairs read from fastq file (ignores qualities!). """
+    from Bio.SeqIO.QualityIO import FastqGeneralIterator    # Bio is the biopython package
+    with open(fastq_infile) as INFILE:
+        for name,seq,_ in FastqGeneralIterator(INFILE):
+            yield name, seq
+
+
+def check_fasta_fastq_format(infilename, verbose=False):
+    """ Check fasta/fastq format based on infilename extension; return "fasta" or "fastq", raise ValueError if neither. 
+
+    Note: the result can be used as the format argument to Bio.SeqIO, but for fastq ONLY if you don't care 
+     about the quality encoding (otherwise you should use one of FASTQ_QUALITY_ENCODINGS, not just "fastq").
+    """
+
+    import os
+    extension = os.path.splitext(infilename)[1][1:]
+    if extension in FASTA_EXTENSIONS:       seq_format = "fasta"
+    elif extension in FASTQ_EXTENSIONS:     seq_format = "fastq"
+    else:
+        raise ValueError("File %s has an unknown extension %s! Allowed extensions are fasta (%s) and fastq (%s)."%(
+                            infilename, extension, ', '.join(FASTA_EXTENSIONS), ', '.join(FASTQ_EXTENSIONS)))
+    if verbose:     
+        formatted_output.append("File %s recognized as %s.\n"%(infilename, seq_format))
+    return seq_format
+
+
+def name_seq_generator_from_fasta_fastq(infile, verbose_filetype_detection=False):
+    """ Yield successive (name,seq) pairs read from fasta or fastq file (filetype detected by extension). """
+    seq_format = check_fasta_fastq_format(infile, verbose=verbose_filetype_detection)
+    if seq_format=='fasta':     return name_seq_generator_from_fasta(infile)
+    elif seq_format=='fastq':   return name_seq_generator_from_fastq(infile)
+    else:                       raise ValueError("Unknown input file format %s (file %s)."%(seq_format, infile))
+    
+
+# Note: normally it's probably better to parse fastq using biopython or HTSeq or such!  But it can be convenient to have a simple locally defined function with no dependencies requiring installation, so I'll keep this.
+def parse_fastq(infile):
+    """ Given a fastq file, yield successive (header,sequence,quality) tuples. """
+    with open(infile) as INFILE:
+        while True:
+            header = INFILE.next().strip()
+            try:
+                seq = INFILE.next().strip()
+                header2 = INFILE.next().strip()
+                qual = INFILE.next().strip()
+            except (StopIteration):
+                raise Exception("Input FastQ file is malformed! Last record didn't have all four lines!")
+
+            if not header[0]=='@':  
+                raise Exception("Malformed input fastq file! Expected seq-header line (@ start), found %s"%header)
+            if not header2[0]=='+':  
+                raise Exception("Malformed input fastq file! Expected qual-header line (+ start), found %s"%header2)
+            header,header2 = header[1:],header2[1:]
+            if not (len(header2)==0 or header==header2):   
+                raise Exception("Malformed input fastq file! Qual-header %s doesn't match seq-header %s"%(header2,header))
+            if not len(seq)==len(qual):             
+                raise Exception("Malformed input fastq file! Seq length doesn't match qual length (%s,%s)"%(seq, qual))
+
+            yield (header, seq, qual)
+
+
+def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
+    """ Given a sequence header from fastx_collapser, return the original sequence count ('>1-243' means 243 sequences).
+    If cannot parse the header, exits with an error message, unless return_1_on_failure is True (then returns 1). """
+    try:                        header_fields = header.split('-')
+    except AttributeError:      header_fields = [header]
+    if len(header_fields) > 1:
+        try:                    return int(header_fields[-1])
+        except ValueError:      pass
+    # if didn't find a '-' to split on, or couldn't get an int from the string, either return 1 or fail
+    if return_1_on_failure: 
+        return 1
+    else:                   
+        raise ValueError("Can't parse header %s to get original pre-fastx_collapser sequence count!"%header)
 
 
 ### testing whether two sequences contain one another, or overlap (based purely on position, no sequence involved)
@@ -90,6 +191,34 @@ def generate_seq_slices(gene_seq,slice_len,slice_step):
 
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
+
+    def test__parse_fastq(self):
+        # need to actually run through the whole iterator to test it - defining it isn't enough
+        def parse_fastq_get_first_last(infile):
+            seq_iter = parse_fastq(infile)
+            seq1 = seq_iter.next()
+            for seq in seq_iter:    
+                seqN = seq
+            return seq1, seqN
+        # checking first and last record of test_inputs/test.fq
+        seq1, seqN = parse_fastq_get_first_last("test_inputs/test.fq")
+        assert seq1 == ("ROCKFORD:4:1:1680:975#0/1", "NCTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA", 
+                        "BRRRQWVWVW__b_____^___bbb___b_______")
+        assert seqN == ("ROCKFORD:4:1:3367:975#0/1", "NCTAAGGCAGATGGACTCCACTGAGGTTGGAACCAA", 
+                        "BQQQNWUWUUbbb_bbbbbbbbb__b_bb_____b_") 
+        # non-fastq input files
+        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/test.fa")
+        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/textcmp_file1.txt")
+
+
+    def test__get_seq_count_from_collapsed_header(self):
+        for bad_header in ['aaa','aaa-aa', 'a-3-a', 'a-3a', '3-a','a+3','a:3','a 3','3',3,0,100,None,True,False,[],{}]:
+            assert get_seq_count_from_collapsed_header(bad_header, return_1_on_failure=True) == 1
+            self.assertRaises(ValueError, get_seq_count_from_collapsed_header, bad_header, return_1_on_failure=False) 
+        for header_prefix in ['a','a ','>a','> a','a b c','a-b-c','a-3-100']:
+            for count in [0,1,3,5,123214]:
+                assert get_seq_count_from_collapsed_header(header_prefix+'-'+str(count)) == count
+
 
     def test__position_test_contains(self):
         # raises an error if start>end for either sequence
