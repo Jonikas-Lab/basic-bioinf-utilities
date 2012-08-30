@@ -11,7 +11,7 @@ import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
+from seq_basic_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
 from general_utilities import add_dicts_of_ints
 
 
@@ -20,7 +20,7 @@ def seq_count_and_lengths(seq_iterator, count_only=False, input_collapsed_to_uni
 
     Sequence length is determined by len(seq) - will fail if len() doesn't work on the elements of seq_iterator. 
     If input_collapsed_to_unique, decode the read count from seq header instead of counting each seq as 1, 
-     using deepseq_utilities.get_seq_count_from_collapsed_header (see docstring for that).
+     using seq_basic_utilities.get_seq_count_from_collapsed_header (see docstring for that).
     """
     total_count = 0
     seqlen_counter = defaultdict(lambda: 0)
@@ -143,6 +143,7 @@ if __name__ == "__main__":
     # input format
     parser.add_option('-c','--input_collapsed_to_unique', action='store_true', default=False, 
                       help="Use to get correct total counts if the infile was collapsed to unique sequences using fastx_collapser, with original sequence counts encoded in the headers (a '>2-572' header means there were 572 identical sequences); default %default).")
+    # TODO add options for explicit infile format specification (fasta or fastq) - some files have different extensions!
     # output format
     # MAYBE-TODO add -u option to keep track of only unique sequences?
     parser.add_option('-n','--total_seq_number_only', action='store_true', default=False, 

@@ -11,7 +11,7 @@ from collections import defaultdict
 # other libraries
 from Bio import SeqIO
 # my modules
-from deepseq_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
+from seq_basic_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
 
 
 def subsequence_counts(infile_reader, seq_length=None, input_collapsed_to_unique=False):

@@ -15,7 +15,7 @@ USAGE:  minimize_fastq_headers.py [options] infile outfile
 # standard libraries
 import sys
 # my modules
-from deepseq_utilities import parse_fastq
+from seq_basic_utilities import parse_fastq
 
 ### option parser
 from optparse import OptionParser
