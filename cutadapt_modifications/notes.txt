@@ -1,0 +1,58 @@
+Modifying the cutadapt program (for more convenient use in experiments/mutant_pool_screens/preprocessing_and_alignment/code/deepseq_preprocessing_wrapper.py mostly). 
+
+Note: it uses tabs for indent, not spaces! Careful about that.
+
+TODO submit patches for that to the cutadapt site?  But it'll need tests and things, I suppose...  Also I think my cutadapt version isn't the newest one.
+
+0) original program (cutadapt_original)
+
+Copied from /usr/local/bin/cutadapt, in case I decide to replace that with my version later (probably a bad idea though)
+
+
+1) Give cutadapt a --too-long-output option similar to the existing --too-short-output option, to save too-long reads to a file instead of discarding them.
+
+Done (easy), that's cutadapt_mine1. 
+
+Tested, works: 
+
+    basic_work_mine/cutadapt_modifications >> cutadapt_mine1 -a CCCGG -e 0 -m 7 -M 9 --untrimmed extra1 --too-short extra2 --too-long extra3 test.fa
+    >right_8bp
+    AAAAAAAA
+    basic_work_mine/cutadapt_modifications >> cat extra1
+    >no_adapter
+    AAAAAAAA
+    basic_work_mine/cutadapt_modifications >> cat extra2 
+    >too_short_5bp
+    AAAAA
+    basic_work_mine/cutadapt_modifications >> cat extra3 
+    >too_long_10bp
+    AAAAAAAAAA
+
+
+2) Do something to make the untrimmed, too-long and too-short sequences all go into a single file instead of three different ones!  
+
+Done (easy), that's cutadapt_mine2. 
+
+In the original (or my v1), if you give the same filename to these three options, things get messy:
+
+    basic_work_mine/cutadapt_modifications >> cutadapt_mine1 -a CCCGG -e 0 -m 7 -M 9 --untrimmed extra --too-short extra --too-long extra test.fa 
+    >right_8bp
+    AAAAAAAA
+    basic_work_mine/cutadapt_modifications >> cat extra
+    >too_short_5bp
+    AAAAA
+    AAAA
+
+New version works:
+
+    basic_work_mine/cutadapt_modifications >> cutadapt_mine2 -a CCCGG -e 0 -m 7 -M 9 --untrimmed extra --too-short extra --too-long extra test.fa
+    >right_8bp
+    AAAAAAAA
+    basic_work_mine/cutadapt_modifications >> cat extra
+    >no_adapter
+    AAAAAAAA
+    >too_short_5bp
+    AAAAA
+    >too_long_10bp
+    AAAAAAAAAA
+

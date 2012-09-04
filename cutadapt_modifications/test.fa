@@ -1,0 +1,8 @@
+>right_8bp
+AAAAAAAACCCGG
+>no_adapter
+AAAAAAAA
+>too_short_5bp
+AAAAACCCGG
+>too_long_10bp
+AAAAAAAAAACCCGG
