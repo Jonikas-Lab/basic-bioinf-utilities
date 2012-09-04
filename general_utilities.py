@@ -342,16 +342,42 @@ def print_text_from_file(infile, OUTFILE=None, printing=True, add_newlines=0):
 
 ### Command/line utilities (running processes, getting output, etc)
 
+def run_command_get_output(command, shell=True):
+    """ Run command using subprocess.Popen (with shell arg as given); return (stdout, stderr, returncode). """
+    p = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE)
+    stdout = '' if not p.stdout else p.stdout.read()
+    stderr = '' if not p.stderr else p.stderr.read()
+    return stdout, stderr, p.returncode
+
+
 def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True, program_name=None):
     """ Run command using subprocess.call; first print a line describing that to LOGFILE and/or stdout.
     The shell arg to subprocess.call is given by shell; LOGFILE should be an open file object; 
-    program_name is only used for printing, and the first word of the command will be used by default. """
+    program_name is only used for printing, and the first word of the command will be used by default. 
+    Note - to print stdout/stderr as well, use run_command_print_info_output. """
     if program_name is None:
         program_name = command.split(' ')[0]
     output = "### Running %s: %s"%(program_name, command)
     if LOGFILE is not None:     LOGFILE.write(output+'\n')
     if printing:                print output
-    subprocess.call([command], shell=shell)
+    return run_command_get_output(command, shell)
+
+
+def run_command_print_info_output(command, LOGFILE=None, printing=True, shell=True, program_name=None, add_newlines=0):
+    """ Run shell command; write command info line and stdout+stderr to LOGFILE and/or stdout.
+
+    The shell arg to subprocess.Popen is given by shell; LOGFILE should be an open file object; 
+    program_name is only used for printing, and the first word of the command will be used by default.
+    The command's return code is returned.
+    """
+    header_line = "### Running %s: %s\n"%((program_name or command.split(' ')[0]), command) 
+    stdout, stderr, retcode = run_command_get_output(command, shell)
+    command_output = stdout + stderr
+    if not command_output.startswith('\n'):  header_line += '\n'
+    full_output = header_line + command_output + '\n'*add_newlines
+    if LOGFILE is not None:     LOGFILE.write(full_output)
+    if printing:                print full_output
+    return retcode
 
 
 ######################################## NUMERIC DATA MANIPULATION ########################################
