@@ -158,7 +158,7 @@ def invert_listdict_tolists(input_dict):
             raise ValueError("invert_listdict_tolists expects all input_dict values to be lists/sets/etc!")
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
 
-# MAYBe-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
+# MAYBE-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
 
 class keybased_defaultdict(defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
@@ -293,7 +293,18 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
 
 ### Writing to files
 
-# DECORATOR
+class Fake_outfile(object):
+    """ Fake file opened for writing - equivalent to writing to /dev/null without touching the OS. All methods do nothing. """
+    # see http://stackoverflow.com/questions/2929899/cross-platform-dev-null-in-python
+    def write(self, *_):        pass
+    def writelines(self, *_):   pass
+    def flush(self, *_):        pass
+    def seek(self, *_):         pass
+    def truncate(self, *_):     pass
+    def close(self, *_):        pass
+FAKE_OUTFILE = Fake_outfile()
+# This is an ALREADY OPEN file.  To get a filename that will yield the equivalent of /dev/null when opened, use os.devnull; not sure if there's a way of doing that without involving the OS, at least without redefining the open builtin.
+
 def replaces_infile_with_outfile(function_to_be_decorated):
     """ DECORATOR, takes a function that takes an infile and outfile and makes it replace infile with outfile instead. 
     The decorated function must still have an argument named outfile, but its value will never be used."""
@@ -807,6 +818,14 @@ class Testing_everything(unittest.TestCase):
         def test_function(obj,val):  
             obj.z = val
         self.assertRaises(TypeError, test_function, a, 10)
+
+    def test__FAKE_OUTFILE(self):
+        assert FAKE_OUTFILE.write() is None
+        assert FAKE_OUTFILE.writelines() is None
+        assert FAKE_OUTFILE.flush() is None
+        assert FAKE_OUTFILE.seek() is None
+        assert FAKE_OUTFILE.truncate() is None
+        assert FAKE_OUTFILE.close() is None
 
     def test__int_or_float(self):
         for bad_input in ['a', [], [1,2,3]]:
