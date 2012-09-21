@@ -410,10 +410,10 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     If exception_for_100 is 'default', it's True for percentages with '%.2g' format but False otherwise and for fractions.
     """ 
     if exception_for_100=='default': 
-        exception_for_100 = True if (not fractions_not_percentages and percentage_format_str=='%.2g') else False
+        exception_for_100 = True if (not fractions_not_percentages and percentage_format_str in ['%.2g','%.2f']) else False
     def _format_number(number):
-        if number==100 and exception_for_100:   return '100'
-        else:                                   return percentage_format_str%number
+        if float(percentage_format_str%number)==100 and exception_for_100:  return '100'
+        else:                                                               return percentage_format_str%number
     if fractions_not_percentages:   percentage_getter = lambda x,total: _format_number(x/total)
     else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
     if NA_for_zero_division:    full_percentage_getter = lambda x,total: 'N/A' if total==0 else percentage_getter(x,total)
