@@ -355,7 +355,7 @@ def print_text_from_file(infile, OUTFILE=None, printing=True, add_newlines=0):
 
 def run_command_get_output(command, shell=True):
     """ Run command using subprocess.Popen (with shell arg as given); return (stdout, stderr, returncode). """
-    p = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE)
+    p = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout = '' if not p.stdout else p.stdout.read()
     stderr = '' if not p.stderr else p.stderr.read()
     return stdout, stderr, p.returncode
