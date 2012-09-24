@@ -90,6 +90,10 @@ def compare_files_with_regex(iter_1, iter_2,
         if line1.startswith('<REGEX>') and line2.startswith('<REGEX>'):
             raise ValueError("Both elements start with <REGEX>, can't match! %s, %s."%(line1,line2))
 
+        # the comparison can be stopped at any point by a stop marker - if the files matched up to that point, return True
+        if any([line.startswith("<STOP COMPARING FILE>") for line in (line1,line2)]):
+            return True
+
         # clean up non-regex lines: clean up whitespace, make lowercase
         for curr_line in line1,line2:
             if not line1.startswith('<REGEX>'):     line1 = clean_line(line1, ignore_whitespace, ignore_case)
