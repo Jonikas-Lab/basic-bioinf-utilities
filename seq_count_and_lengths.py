@@ -49,7 +49,7 @@ def _format_lengths(seqlen_dict, include_zeros=False, verbosity=1):
 
 def main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
          include_zeros=False, verbosity=1, OUTPUT=sys.stdout):
-    """ Given a list of fastq/fasta files, return total seq number, a length:N dict and formatted info (optionally print it)
+    """ Given a list of fastq/fasta files, return total seq number, a length:N dict and formatted info (optionally print).
     
     If total_seq_number_only is True, only return/print total seq count.
     If input_collapsed_to_unique is True, program assumes infile was preprocessed with fastx_collapser, 
@@ -120,21 +120,23 @@ class Testing(unittest.TestCase):
         # FUNCTION SIGNATURE: main(infiles, total_seq_number_only=False, input_collapsed_to_unique=False, 
         #                          include_zeros=False, verbosity=1, OUTPUT=sys.stdout)
         quiet = dict(verbosity=0, OUTPUT=None)
-        test_fa, test_fq, with_counts = "test_inputs/test.fa", "test_inputs/test.fq", "test_inputs/with-counts.fa"
+        test_fa, test_fq, with_counts = "_test_inputs/test.fa", "_test_inputs/test.fq", "_test_inputs/with-counts.fa"
         # wrong input file format (unrecognized extension)
-        self.assertRaises(SystemExit, main, ["test_inputs/textcmp_file2.txt"], **quiet)
+        self.assertRaises(ValueError, main, ["_test_inputs/textcmp_file2.txt"], **quiet)
         # no input files = empty output
-        assert main([], **quiet) == (0, {})
+        assert main([], **quiet) == (0, {}, [])
+        # Note: from here on I only check the first two output elements ([:2]) - the third is a list of 
+        #   formatted output lines, MAYBE-TODO test that too?
         # single input file
-        assert main([test_fa], **quiet) == (5, {0:2, 3:1, 5:1, 12:1})
-        assert main([test_fa], total_seq_number_only=True, **quiet) == (5, {})
-        assert main([test_fq], **quiet) == (7, {36:7})
+        assert main([test_fa], **quiet)[:2] == (5, {0:2, 3:1, 5:1, 12:1})
+        assert main([test_fa], total_seq_number_only=True, **quiet)[:2] == (5, {})
+        assert main([test_fq], **quiet)[:2] == (7, {36:7})
         # two input files
-        assert main([test_fq, test_fq], **quiet) == (14, {36:14})
-        assert main([test_fa,test_fq], **quiet) == (12, {0:2, 3:1, 5:1, 12:1, 36:7})
+        assert main([test_fq, test_fq], **quiet)[:2] == (14, {36:14})
+        assert main([test_fa,test_fq], **quiet)[:2] == (12, {0:2, 3:1, 5:1, 12:1, 36:7})
         # input_collapsed_to_unique
-        assert main([with_counts], input_collapsed_to_unique=False, **quiet) ==  (5, {0:2, 3:1, 5:1, 12:1})
-        assert main([with_counts], input_collapsed_to_unique=True, **quiet) == (42, {0:11, 3:10, 5:20, 12:1})
+        assert main([with_counts], input_collapsed_to_unique=False, **quiet)[:2] ==  (5, {0:2, 3:1, 5:1, 12:1})
+        assert main([with_counts], input_collapsed_to_unique=True, **quiet)[:2] == (42, {0:11, 3:10, 5:20, 12:1})
 
 
 if __name__ == "__main__":
