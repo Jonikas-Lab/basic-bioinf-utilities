@@ -352,7 +352,8 @@ class Testing__everything(unittest.TestCase):
         ### testing on files instead of lists - remember to restart the iterators every time!
         if debug:   print " ************* file tests **************** "
         # non-regex files match themselves
-        file1,file2,file3 = 'test_inputs/textcmp_file1.txt','test_inputs/textcmp_file2.txt','test_inputs/textcmp_file3.txt'
+        file1, file2, file3 = ('_test_inputs/textcmp_file1.txt','_test_inputs/textcmp_file2.txt',
+                               '_test_inputs/textcmp_file3.txt')
         with open(file1,'r') as F1:
             with open(file1,'r') as F1_:
                 assert compare_files_with_regex(F1, F1_) == True

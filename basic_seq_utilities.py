@@ -200,15 +200,15 @@ class Testing_everything(unittest.TestCase):
             for seq in seq_iter:    
                 seqN = seq
             return seq1, seqN
-        # checking first and last record of test_inputs/test.fq
-        seq1, seqN = parse_fastq_get_first_last("test_inputs/test.fq")
+        # checking first and last record of _test_inputs/test.fq
+        seq1, seqN = parse_fastq_get_first_last("_test_inputs/test.fq")
         assert seq1 == ("ROCKFORD:4:1:1680:975#0/1", "NCTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA", 
                         "BRRRQWVWVW__b_____^___bbb___b_______")
         assert seqN == ("ROCKFORD:4:1:3367:975#0/1", "NCTAAGGCAGATGGACTCCACTGAGGTTGGAACCAA", 
                         "BQQQNWUWUUbbb_bbbbbbbbb__b_bb_____b_") 
         # non-fastq input files
-        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/test.fa")
-        self.assertRaises(Exception, parse_fastq_get_first_last, "test_inputs/textcmp_file1.txt")
+        self.assertRaises(Exception, parse_fastq_get_first_last, "_test_inputs/test.fa")
+        self.assertRaises(Exception, parse_fastq_get_first_last, "_test_inputs/textcmp_file1.txt")
 
 
     def test__get_seq_count_from_collapsed_header(self):
