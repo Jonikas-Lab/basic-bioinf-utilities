@@ -132,6 +132,42 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
         raise ValueError("Can't parse header %s to get original pre-fastx_collapser sequence count!"%header)
 
 
+### utilities to deal with standard genomic chromosome names (sort them correctly etc)
+
+def chromosome_type(chromosome):
+    """ Chromosome type - simply the first _-separated word (so "chromosome_12" is "chromosome" etc).  
+    May make it more complex later. """
+    return chromosome.split('_')[0]
+
+
+def chromosome_sort_key(chromosome):
+    """ Get sort key to sort like this: chromosomes (numerical), other(alphabetical), scaffolds (numerical). 
+    
+    Currently won't deal with arbitrary chromosome names, only standard ones - raises exception otherwise. """
+    chromosome.split('_')
+    fields = chromosome.split('_')
+    if fields[0]=='chromosome':  return (1, int(fields[1]))
+    elif fields[0]=='scaffold':  return (3, int(fields[1]))
+    elif len(fields)==1:         return (2, fields[0])
+    else:                        raise ValueError("Can't parse chromosome name %s!"%chromosome)
+
+
+def chromosome_color(chromosome, color_for_other=None):
+    """ Return a color by chromosome type: blue=chromosome, grey=scaffold, green=chloroplast, red-mitochondrial.
+
+    Uses chromosome_type to determine type.  
+    For other types, raise exception if color_for_other is None, otherwise return color_for_other.
+    """
+    chr_type = chromosome_type(chromosome)
+    if chr_type=='chromosome':              return 'blue'
+    elif chr_type=='scaffold':              return 'grey'
+    elif chr_type=='chloroplast':           return 'green'
+    elif chr_type=='mitochondrial':         return 'red'
+    else:                        
+        if color_for_other is not None:     return color_for_other
+        else:                               raise ValueError("Can't parse chromosome name %s!"%chromosome)
+
+
 ### testing whether two sequences contain one another, or overlap (based purely on position, no sequence involved)
 
 def position_test_contains(seq1_start, seq1_end, seq2_start, seq2_end):
@@ -218,6 +254,30 @@ class Testing_everything(unittest.TestCase):
         for header_prefix in ['a','a ','>a','> a','a b c','a-b-c','a-3-100']:
             for count in [0,1,3,5,123214]:
                 assert get_seq_count_from_collapsed_header(header_prefix+'-'+str(count)) == count
+
+
+    def test__chromosome_type(self):
+        for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3'.split()):
+            assert chromosome_type(chrom) == 'chromosome'
+        for chrom in ('scaffold_1 scaffold_12 scaffold_FOO scaffold_1_2_3'.split()):
+            assert chromosome_type(chrom) == 'scaffold'
+        assert chromosome_type('123') == '123'
+        assert chromosome_type('foo_bar_baz') == 'foo'
+
+    def test__chromosome_sort_key(self):
+        chrom_list = 'chromosome_12 scaffold_3 chromosome_1 chloroplast scaffold_2 cassette'.split()
+        chrom_list_sorted = 'chromosome_1 chromosome_12 cassette chloroplast scaffold_2 scaffold_3'.split()
+        assert sorted(chrom_list, key=chromosome_sort_key) == chrom_list_sorted
+        self.assertRaises(ValueError, chromosome_sort_key, 'insertion_cassette')
+
+    def test__chromosome_color(self):
+        assert all([chromosome_color(c) == 'blue' for c in 'chromosome_1 chromosome chromosome_A'.split()])
+        assert all([chromosome_color(c) == 'grey' for c in 'scaffold_1 scaffold scaffold_A'.split()])
+        assert all([chromosome_color(c) == 'green' for c in 'chloroplast chloroplast_A'.split()])
+        assert all([chromosome_color(c) == 'red' for c in 'mitochondrial mitochondrial_A'.split()])
+        for other_chr in 'insertion_cassette foo_bar other_chromosome'.split():
+            assert chromosome_color(other_chr, color_for_other='cyan') == 'cyan'
+            self.assertRaises(ValueError, chromosome_color, other_chr, color_for_other=None)
 
 
     def test__position_test_contains(self):
