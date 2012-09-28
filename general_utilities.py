@@ -291,6 +291,13 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
     # TODO add to unit-tests? Or some kind of test.
 
 
+def unpickle(infile_name):
+    """ Just run pickle.load on the infile and return the result - small convenience function. """
+    import pickle
+    with open(infile_name) as PICKLEFILE:
+        return pickle.load(PICKLEFILE)
+
+
 ### Writing to files
 
 class Fake_outfile(object):
