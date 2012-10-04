@@ -400,6 +400,13 @@ def run_command_print_info_output(command, LOGFILE=None, printing=True, shell=Tr
 
 ######################################## NUMERIC DATA MANIPULATION ########################################
 
+NaN = float('NaN')
+
+def nan_func(): 
+    """ Simply return the float NaN value (for use in defaultdict). """
+    return NaN
+
+
 def int_or_float(x):
     """ Return int(x) if it's equal to x, else return x (useful to convert whole-number float to int). """
     if int(x) == x:     return int(x)
@@ -428,7 +435,7 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     return "%s (%s)"%(val, ', '.join([full_percentage_getter(val,total) for total in totals]))
 
 
-### Get rid of nan/inf numbers singly or in lists/dicts, replace by input
+### Get rid of NaN/inf numbers singly or in lists/dicts, replace by input
 
 def clean_number(val,replace_NaN,replace_Inf,replace_NegInf,make_positive=False):
     """ Replace NaN/Inf/NegInf value with arguments provided, otherwise return input. Also make val positive if asked. """
