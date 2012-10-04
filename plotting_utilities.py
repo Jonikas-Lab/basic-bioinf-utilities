@@ -12,6 +12,12 @@ import matplotlib.pyplot as mplt
 
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
+
+def savefig(figname, padding=0.2, dpi=300):
+    """ Save current figure as figname, with bbox_inches='tight' and given padding and dpi. """
+    mplt.savefig(figname, bbox_inches='tight', pad_inches=padding, dpi=dpi)
+
+
 ################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
 
 def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0.7, colors='bgrcmy'):
@@ -41,6 +47,19 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 
 
 ################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
+
+
+def remove_legend(ax=None):
+    """ Remove legend for ax or the current axes (detected with gca()). """
+    # from Scipy matplotlib cookbook - http://www.scipy.org/Cookbook/Matplotlib/Legend
+    if ax is None:
+        ax = mplt.gca()
+    ax.legend_ = None
+    # alternative version here - http://stackoverflow.com/questions/5735208/remove-the-legend-on-a-matplotlib-figure
+    # ax.legend().set_visible(False)
+    # yes, the draw is actually needed in this case!
+    mplt.draw()
+
 
 def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
     """ Change the color of the frame/ticks/ticklabels of plot_axes (a matplotlib.axes.AxesSubplot object) to color. """
