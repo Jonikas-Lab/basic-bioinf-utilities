@@ -112,7 +112,6 @@ def add_dicts_of_ints(dict1, dict2, recursive=False,
                 raise ValueError("Encountered non-allowed value in one of the dictionaries! See docstring for options.")
     return new_dict
 
-
 def invert_list_to_dict(input_list):
     """ Given a list with no duplicates, return a dict mapping the values to list positions: [a,b,c] -> {a:1,b:2,c:3}."""
     if not len(set(input_list)) == len(input_list):
@@ -157,6 +156,15 @@ def invert_listdict_tolists(input_dict):
         except TypeError:
             raise ValueError("invert_listdict_tolists expects all input_dict values to be lists/sets/etc!")
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
+
+def sort_lists_inside_dict(input_dict, reverse=False, key=None):
+    """ Given a key:value_list dict, return same dict but with sorted value_lists (using key and reverse args for sort)."""
+    new_dict = {}
+    for k,l in input_dict.iteritems():
+        if key is None:     new_dict[k] = sorted(l, reverse=reverse)
+        else:               new_dict[k] = sorted(l, reverse=reverse, key=key)
+    return new_dict
+
 
 # MAYBE-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
 
@@ -804,6 +812,17 @@ class Testing_everything(unittest.TestCase):
         assert invert_listdict_tolists({1:[2],3:[2]}) == {2:set([1,3])}
         assert invert_listdict_tolists({1:[2,4],3:[2]}) == {2:set([1,3]),4:set([1])}
         self.assertRaises(ValueError, invert_listdict_tolists, {1:2,3:2})
+
+    def test__sort_lists_inside_dict(self):
+        assert sort_lists_inside_dict({}) == {}
+        self.assertRaises(TypeError, sort_lists_inside_dict, {1:1, 2:2})
+        self.assertRaises(TypeError, sort_lists_inside_dict, {1:[1,2,3], 2:2})
+        assert sort_lists_inside_dict({1:[1,3,2], 2:[4,5,4]}) == {1:[1,2,3], 2:[4,4,5]}
+        assert sort_lists_inside_dict({1:[1,3,2], 2:[4,5,4]}, reverse=True) == {1:[3,2,1], 2:[5,4,4]}
+        assert sort_lists_inside_dict({1:[0,-1,2]}) == {1:[-1,0,2]}
+        assert sort_lists_inside_dict({1:[-1,0,2]}, reverse=True) ==  {1:[2,0,-1]}
+        assert sort_lists_inside_dict({1:[-1,0,2]}, key=lambda x: abs(x)) ==  {1:[0,-1,2]}
+        assert sort_lists_inside_dict({1:[-1,0,2]}, key=lambda x: abs(x), reverse=True) ==  {1:[2,-1,0]}
 
     def test__keybased_defaultdict(self):
         D_nodefault = keybased_defaultdict(None)
