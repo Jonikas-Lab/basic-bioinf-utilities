@@ -639,6 +639,34 @@ def split_into_N_sets_by_counts(ID_counts, N):
         output_counts_sets.sort()
     return [ID_set for [count,ID_set] in output_counts_sets]
 
+def merge_values_to_unique(value_list, blank_value='NO_BLANK_VALUES', convert_for_set=(lambda x: x), value_name='', 
+                           context='values in value_list passed to merge_multi_values'):
+    """ Merge value_list to a single value, ignoring blank_value unless all are blank; raise Exception if impossible.
+
+    If value_list is all blank_values, return blank_value;
+    if there's one unique non-blank value in value_list (can show up multiple times), return that;
+    if there are multiple unique non-blank values, raise ValueError,
+     using value_name and context arguments to provide description (they're only used for that).
+
+    If the elements of value_list are mutable and can't be put in a set, 
+     provide a convert_for_set function (like tuple for lists).
+    """
+    value_set = set([convert_for_set(val) for val in value_list])
+    converted_blank_value = convert_for_set(blank_value)
+    blank_single_set = set([converted_blank_value])
+    # we're using convert_for_set to make the values hashable, but we want to return the ORIGINAL values,
+    #  not the hashable versions, so keep track with hashable:original dictionary
+    unconverted_values = dict([(convert_for_set(val), val) for val in value_list])
+    if value_set == blank_single_set:
+        return unconverted_values[converted_blank_value]
+    else:
+        value_set -= blank_single_set
+        if len(value_set) == 1:
+            return unconverted_values[value_set.pop()]
+        else:
+            raise ValueError("Different %s have different %s values!"%(context, value_name)
+                             +", ".join([str(val) for val in value_set]))
+
 
 
 ######################################## TESTS FOR THIS FILE ########################################
@@ -937,6 +965,26 @@ class Testing_everything(unittest.TestCase):
                                        [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set(), set()])
         assert compare_lists_unordered(split_into_N_sets_by_counts(input3,8), 
                                        [set(['a']), set(['b']), set(['c']), set(['d']), set(['e']), set(), set(), set()])
+
+    def test__merge_values_to_unique(self):
+        # with no blank, just return a value if input is multiple copies of it, otherwise raise ValueError
+        assert merge_values_to_unique('aaaa') == 'a'
+        assert merge_values_to_unique([1,1,1]) == 1
+        self.assertRaises(ValueError, merge_values_to_unique, [1,2,1])
+        # with a blank, ignore blank values UNLESS they're the only ones present
+        assert merge_values_to_unique([1,2,1], blank_value=1) == 2
+        assert merge_values_to_unique([1,1,1], blank_value=1) == 1
+        assert merge_values_to_unique([1,2,1], blank_value=2) == 1
+        assert merge_values_to_unique([2,2,2], blank_value=2) == 2
+        self.assertRaises(ValueError, merge_values_to_unique, [1,2,1], blank_value=3)
+        self.assertRaises(ValueError, merge_values_to_unique, [1,2,3], blank_value=1)
+        self.assertRaises(ValueError, merge_values_to_unique, [1,2,3], blank_value=2)
+        # testing the convert_for_set function - unhashable value types should return TypeError without it
+        self.assertRaises(TypeError, merge_values_to_unique, [[1,1], [1,1]])
+        assert merge_values_to_unique([[1,1], [1,1]], convert_for_set=tuple) == [1,1]
+        self.assertRaises(ValueError, merge_values_to_unique, [[1,1], [2,2]], convert_for_set=tuple)
+        assert merge_values_to_unique([[1,1], [2,2]], blank_value=[1,1], convert_for_set=tuple) == [2,2]
+        # MAYBE-TODO add tests for the value_name and context args, which are only used for the error message?
 
     # TODO add tests for everything else
 
