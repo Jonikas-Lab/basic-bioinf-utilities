@@ -52,13 +52,24 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 def remove_legend(ax=None):
     """ Remove legend for ax or the current axes (detected with gca()). """
     # from Scipy matplotlib cookbook - http://www.scipy.org/Cookbook/Matplotlib/Legend
-    if ax is None:
-        ax = mplt.gca()
+    if ax is None:  ax = mplt.gca()
     ax.legend_ = None
     # alternative version here - http://stackoverflow.com/questions/5735208/remove-the-legend-on-a-matplotlib-figure
     # ax.legend().set_visible(False)
     # yes, the draw is actually needed in this case!
     mplt.draw()
+
+def remove_xticklabels(ax=None):
+    """ Remove x tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
+    if ax is None:  ax = mplt.gca()
+    xticks = mplt.xticks()[0]
+    mplt.xticks(xticks, [''] * len(xticks))
+
+def remove_yticklabels(ax=None):
+    """ Remove y tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
+    if ax is None:  ax = mplt.gca()
+    yticks = mplt.yticks()[0]
+    mplt.yticks(yticks, [''] * len(yticks))
 
 
 def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
