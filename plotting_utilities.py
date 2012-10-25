@@ -62,14 +62,18 @@ def remove_legend(ax=None):
 def remove_xticklabels(ax=None):
     """ Remove x tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
     if ax is None:  ax = mplt.gca()
+    xlim = mplt.xlim()
     xticks = mplt.xticks()[0]
     mplt.xticks(xticks, [''] * len(xticks))
+    mplt.xlim(xlim)
 
 def remove_yticklabels(ax=None):
     """ Remove y tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
     if ax is None:  ax = mplt.gca()
+    lim = mplt.ylim()
     yticks = mplt.yticks()[0]
     mplt.yticks(yticks, [''] * len(yticks))
+    mplt.ylim(lim)
 
 
 def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
