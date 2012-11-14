@@ -76,8 +76,8 @@ def main(infiles, args):
 
         with open(infile) as INFILE:
             for sequence in SeqIO.parse(INFILE, seq_format): 
-                # using seq.data to convert Biopython Seq objects to plain strings - Seq objects aren't hashable correctly
-                all_names_and_seqs.append((sequence.name, sequence.seq.data))
+                # using seq.tostring() to convert Biopython Seq objects to plain strings - Seq objects aren't hashable correctly
+                all_names_and_seqs.append((sequence.name, sequence.seq.tostring()))
 
     no_repeats = True
     for (nameA,seqA), (nameB,seqB) in combinations(all_names_and_seqs, 2):
