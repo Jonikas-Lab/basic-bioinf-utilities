@@ -664,7 +664,7 @@ def merge_values_to_unique(value_list, blank_value='NO_BLANK_VALUES', convert_fo
         if len(value_set) == 1:
             return unconverted_values[value_set.pop()]
         else:
-            raise ValueError("Different %s have different %s values!"%(context, value_name)
+            raise ValueError("Different %s have different %s values! "%(context, value_name)
                              +", ".join([str(val) for val in value_set]))
 
 
