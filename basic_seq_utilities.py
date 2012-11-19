@@ -8,6 +8,8 @@ Weronika Patena, 2008-2010
 ### basic library
 import unittest
 import sys
+import re
+import random
 ### my modules
 # help functions
 from parse_fasta import parse_fasta,print_seq
@@ -140,16 +142,23 @@ def chromosome_type(chromosome):
     return chromosome.split('_')[0]
 
 
-def chromosome_sort_key(chromosome):
-    """ Get sort key to sort like this: chromosomes (numerical), other(alphabetical), scaffolds (numerical). 
-    
-    Currently won't deal with arbitrary chromosome names, only standard ones - raises exception otherwise. """
-    chromosome.split('_')
-    fields = chromosome.split('_')
-    if fields[0]=='chromosome':  return (1, int(fields[1]))
-    elif fields[0]=='scaffold':  return (3, int(fields[1]))
-    elif len(fields)==1:         return (2, fields[0])
-    else:                        raise ValueError("Can't parse chromosome name %s!"%chromosome)
+def chromosome_sort_key(chromosome_name):
+    """ Sort key: 1) sort chromosomes, then other, then scaffolds; 2) inside each category sort numerically if possible. 
+
+    Numerical sort sorts 'chr1' before 'chr12' correctly.  Only numbers at the end of the chromosome name are recognized.
+    Underscores are stripped from 
+    Names are the full 
+    The full original chromosome_name is used as the last part of the key, in case of two names resulting in the same key
+     (like chr1 and chr_1 and chr01).
+    """
+    chromosome_data = re.search('^(?P<name>.*[^\d])?(?P<number>\d*)', chromosome_name)
+    # chromosome_base is the original chromosome name without the last digits; if there were no non-digit characters, it's None
+    chromosome_base = chromosome_data.group('name').strip('_')
+    # chromosome_number is based on the number at the end of the chromosome name, or 0 if none was present
+    chromosome_number = int(chromosome_data.group('number')) if chromosome_data.group('number') else 0
+    if chromosome_base in ('chromosome', 'chr'):    return (1, 'chromosome', chromosome_number, chromosome_name)
+    elif chromosome_base=='scaffold':               return (3, 'scaffold', chromosome_number, chromosome_name)
+    else:                                           return (2, chromosome_base, chromosome_number, chromosome_name) 
 
 
 def chromosome_color(chromosome, color_for_other=None):
@@ -265,10 +274,15 @@ class Testing_everything(unittest.TestCase):
         assert chromosome_type('foo_bar_baz') == 'foo'
 
     def test__chromosome_sort_key(self):
-        chrom_list = 'chromosome_12 scaffold_3 chromosome_1 chloroplast scaffold_2 cassette'.split()
-        chrom_list_sorted = 'chromosome_1 chromosome_12 cassette chloroplast scaffold_2 scaffold_3'.split()
-        assert sorted(chrom_list, key=chromosome_sort_key) == chrom_list_sorted
-        self.assertRaises(ValueError, chromosome_sort_key, 'insertion_cassette')
+        chroms_sorted = (
+            'chr chromosome_1 chr_2 chr03 chr3 chr_3 chromosome_3 chromosome_12 chromosome_101 chromosome_300 chr301'.split()
+            +'31a AAA AAA3 cassette chloroplast insertion_cassettes_31_a some_thing something31a'.split()
+            +'scaffold02 scaffold2 scaffold_3 scaffold_3 scaffold_21'.split()
+        )
+        for _ in range(100):
+            chroms = list(chroms_sorted)
+            random.shuffle(chroms)
+            assert sorted(chroms, key=chromosome_sort_key) == chroms_sorted
 
     def test__chromosome_color(self):
         assert all([chromosome_color(c) == 'blue' for c in 'chromosome_1 chromosome chromosome_A'.split()])
