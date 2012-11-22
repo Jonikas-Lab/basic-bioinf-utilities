@@ -177,16 +177,17 @@ def chromosome_sort_key(chromosome_name):
 
 
 def chromosome_color(chromosome, color_for_other=None):
-    """ Return a color by chromosome type: blue=chromosome, grey=scaffold, green=chloroplast, red-mitochondrial.
+    """ Return a color by chromosome type: black=chromosome, blue=scaffold, green=chloroplast, red=mitochondrial, grey=cassette.
 
-    Uses chromosome_type to determine type.  
+    Uses chromosome_type to determine type. 
     For other types, raise exception if color_for_other is None, otherwise return color_for_other.
     """
     chr_type = chromosome_type(chromosome)
-    if chr_type=='chromosome':              return 'blue'
-    elif chr_type=='scaffold':              return 'grey'
+    if chr_type=='chromosome':              return 'black'
+    elif chr_type=='scaffold':              return 'blue'
     elif chr_type=='chloroplast':           return 'green'
     elif chr_type=='mitochondrial':         return 'red'
+    elif chr_type=='cassette':              return '0.6'
     else:                        
         if color_for_other is not None:     return color_for_other
         else:                               raise ValueError("Can't parse chromosome name %s!"%chromosome)
@@ -311,10 +312,11 @@ class Testing_everything(unittest.TestCase):
             assert sorted(chroms, key=chromosome_sort_key) == chroms_sorted
 
     def test__chromosome_color(self):
-        assert all([chromosome_color(c) == 'blue' for c in 'chromosome_1 chromosome chromosome_A'.split()])
-        assert all([chromosome_color(c) == 'grey' for c in 'scaffold_1 scaffold scaffold_A'.split()])
+        assert all([chromosome_color(c) == 'black' for c in 'chromosome_1 chromosome chromosome_A'.split()])
+        assert all([chromosome_color(c) == 'blue' for c in 'scaffold_1 scaffold scaffold_A'.split()])
         assert all([chromosome_color(c) == 'green' for c in 'chloroplast chloroplast_A'.split()])
         assert all([chromosome_color(c) == 'red' for c in 'mitochondrial mitochondrial_A'.split()])
+        assert all([chromosome_color(c) == '0.6' for c in 'cassette insertion_cassette cassette_pMJ013b'.split()])
         for other_chr in 'some_thing foo_bar mito_and_chloro'.split():
             assert chromosome_color(other_chr, color_for_other='cyan') == 'cyan'
             self.assertRaises(ValueError, chromosome_color, other_chr, color_for_other=None)
