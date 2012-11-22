@@ -136,10 +136,25 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
 
 ### utilities to deal with standard genomic chromosome names (sort them correctly etc)
 
-def chromosome_type(chromosome):
-    """ Chromosome type - simply the first _-separated word (so "chromosome_12" is "chromosome" etc).  
-    May make it more complex later. """
-    return chromosome.split('_')[0]
+def chromosome_type(chromosome, separate_other=False):
+    """ Given the chromosome name, return type: chromosome/scaffold/chloroplast/mitochondrial/cassette/other.
+
+    Check for chromosome/scaffold/chloroplast/mitochondrial/cassette (by substrings or startswith);
+     if a name didn't match any, or matched more than one, return 'other', 
+     or if separate_other is True, return the first _-separated word of the original name.
+    """
+    # first see which words are found in the name (check for all of them, just in case more than one is found)
+    types = set()
+    if chromosome.startswith('chr'):    types.add('chromosome')
+    if 'chromosome' in chromosome:      types.add('chromosome')
+    if 'scaffold' in chromosome:        types.add('scaffold')
+    if 'chloro' in chromosome:          types.add('chloroplast')
+    if 'mito' in chromosome:            types.add('mitochondrial')
+    if 'cassette' in chromosome:        types.add('cassette')
+    # now if the name matched exactly one type, return that, otherwise return 'other' or the first part of the name.
+    if len(types)==1:       return types.pop()
+    elif separate_other:    return chromosome.split('_')[0]
+    else:                   return 'other'
 
 
 def chromosome_sort_key(chromosome_name):
@@ -266,12 +281,23 @@ class Testing_everything(unittest.TestCase):
 
 
     def test__chromosome_type(self):
-        for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3'.split()):
+        for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3 chromosome1 chr_3 chr4'.split()):
             assert chromosome_type(chrom) == 'chromosome'
-        for chrom in ('scaffold_1 scaffold_12 scaffold_FOO scaffold_1_2_3'.split()):
+        for chrom in ('scaffold_1 scaffold_12 scaffold_FOO scaffold_1_2_3 scaffold2 scaffold'.split()):
             assert chromosome_type(chrom) == 'scaffold'
-        assert chromosome_type('123') == '123'
-        assert chromosome_type('foo_bar_baz') == 'foo'
+        for chrom in ('mitochondrial mitochondrion mito_3 mito3'.split()):
+            assert chromosome_type(chrom) == 'mitochondrial'
+        for chrom in ('chloroplast chloroplast_4 chloroplastABC chloroplast123 chloro_3 chloro3'.split()):
+            assert chromosome_type(chrom) == 'chloroplast'
+        for chrom in ('cassette insertion_cassette cassette_pMJ0013 insertion_cassette_A'.split()):
+            assert chromosome_type(chrom) == 'cassette'
+        for chrom in ('123 something random mitochondrial_chromosome chr_chloro mito_and_chloro mito_cassette'.split()):
+            assert chromosome_type(chrom, separate_other=False) == 'other'
+        assert chromosome_type('123', separate_other=True) == '123'
+        assert chromosome_type('12_3', separate_other=True) == '12'
+        assert chromosome_type('something', separate_other=True) == 'something'
+        assert chromosome_type('mito_and_chloro', separate_other=True) == 'mito'
+        assert chromosome_type('foo_bar_baz', separate_other=True) == 'foo'
 
     def test__chromosome_sort_key(self):
         chroms_sorted = (
@@ -289,7 +315,7 @@ class Testing_everything(unittest.TestCase):
         assert all([chromosome_color(c) == 'grey' for c in 'scaffold_1 scaffold scaffold_A'.split()])
         assert all([chromosome_color(c) == 'green' for c in 'chloroplast chloroplast_A'.split()])
         assert all([chromosome_color(c) == 'red' for c in 'mitochondrial mitochondrial_A'.split()])
-        for other_chr in 'insertion_cassette foo_bar other_chromosome'.split():
+        for other_chr in 'some_thing foo_bar mito_and_chloro'.split():
             assert chromosome_color(other_chr, color_for_other='cyan') == 'cyan'
             self.assertRaises(ValueError, chromosome_color, other_chr, color_for_other=None)
 
