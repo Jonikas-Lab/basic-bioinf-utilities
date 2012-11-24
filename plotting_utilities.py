@@ -48,6 +48,9 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 
 ################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
 
+# NOTE: the mplt.* methods are interactive, but the ax.* methods etc need an mplt.draw() to show the results.
+
+# MAYBE-TODO could make the "if ax is None:  ax = mplt.gca()" line into a decorator, since it shows up everywhere
 
 def remove_legend(ax=None):
     """ Remove legend for ax or the current axes (detected with gca()). """
@@ -82,6 +85,26 @@ def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True
     if color_frame:         mplt.setp(plot_axes.spines.values(), color=color)
     if color_ticks:         mplt.setp([plot_axes.get_xticklines(), plot_axes.get_yticklines()], color=color)
     if color_ticklabels:    mplt.setp([plot_axes.get_xticklabels(), plot_axes.get_yticklabels()], color=color)
+
+# more on modifying frames here: http://matplotlib.org/examples/pylab_examples/spine_placement_demo.html
+
+def remove_frame(ax=None):
+    """ Remove plot frame, including x/y ticks and ticklabels. """
+    if ax is None:  ax = mplt.gca()
+    ax.set_frame_on(False)
+    mplt.xticks([], [])
+    mplt.yticks([], [])
+    mplt.draw()
+
+def remove_half_frame(ax=None):
+    """ Remove the top and right sides of the plot frame, including x/y ticks. """
+    # source: http://stackoverflow.com/questions/925024/how-can-i-remove-the-top-and-right-axis-in-matplotlib#925141
+    if ax is None:  ax = mplt.gca()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    mplt.draw()
 
 
 ################## OLD FUNCTIONS, moved from general_utilities.py
