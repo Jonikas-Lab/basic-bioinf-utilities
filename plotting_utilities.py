@@ -48,23 +48,28 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 
 ################################ COSMETIC MODIFICATIONS TO EXISTING PLOTS ###################################
 
-# NOTE: the mplt.* methods are interactive, but the ax.* methods etc need an mplt.draw() to show the results.
+# NOTE: mplt.gca() is get_current_axis, for when I was to act on it directly with ax.* methods and I don't have an ax arg given;
+#       mplt.sca(ax) is set_current_axis, for when I have an ax input and I want to act on it indirectly with mplt.* methods.
+# The mplt.* methods are interactive, but the ax.* methods etc need an mplt.draw() to show the results.
 
-# MAYBE-TODO could make the "if ax is None:  ax = mplt.gca()" line into a decorator, since it shows up everywhere
+# MAYBE-TODO could make the "if ax is None:  ax = mplt.gca(); else:  mplt.sca(ax)" line into a decorator, since it shows up everywhere
 
 def remove_legend(ax=None):
     """ Remove legend for ax or the current axes (detected with gca()). """
     # from Scipy matplotlib cookbook - http://www.scipy.org/Cookbook/Matplotlib/Legend
     if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
     ax.legend_ = None
     # alternative version here - http://stackoverflow.com/questions/5735208/remove-the-legend-on-a-matplotlib-figure
     # ax.legend().set_visible(False)
     # yes, the draw is actually needed in this case!
     mplt.draw()
 
+
 def remove_xticklabels(ax=None):
     """ Remove x tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
     if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
     xlim = mplt.xlim()
     xticks = mplt.xticks()[0]
     mplt.xticks(xticks, [''] * len(xticks))
@@ -73,24 +78,42 @@ def remove_xticklabels(ax=None):
 def remove_yticklabels(ax=None):
     """ Remove y tick labels (leaving the ticks unchanged); acts on ax, or current axes if ax is None. """
     if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
     lim = mplt.ylim()
     yticks = mplt.yticks()[0]
     mplt.yticks(yticks, [''] * len(yticks))
     mplt.ylim(lim)
 
 
-def color_plot_frame(plot_axes, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
-    """ Change the color of the frame/ticks/ticklabels of plot_axes (a matplotlib.axes.AxesSubplot object) to color. """
+def set_axes_limits(x_min=None, x_max=None, y_min=None, y_max=None, ax=None):
+    """ Set whichever limits aren't None, keeping the others the same. """
+    if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
+    # MAYBE-TODO could add an option to only increase (take max of current and new value), or only decrease, etc...
+    if ax is None:  ax = mplt.gca()
+    if x_min is None:   x_min = mplt.xlim()[0]
+    if x_max is None:   x_max = mplt.xlim()[1]
+    mplt.xlim((x_min, x_max))
+    if y_min is None:   y_min = mplt.ylim()[0]
+    if y_max is None:   y_max = mplt.ylim()[1]
+    mplt.ylim((y_min, y_max))
+
+
+def color_plot_frame(ax=None, color='grey', color_frame=True, color_ticks=True, color_ticklabels=True): 
+    """ Change the color of the frame/ticks/ticklabels of ax (a matplotlib.axes.AxesSubplot object) to color. """
     # source: http://stackoverflow.com/questions/7778954/elegantly-changing-the-color-of-a-plot-frame-in-matplotlib
-    if color_frame:         mplt.setp(plot_axes.spines.values(), color=color)
-    if color_ticks:         mplt.setp([plot_axes.get_xticklines(), plot_axes.get_yticklines()], color=color)
-    if color_ticklabels:    mplt.setp([plot_axes.get_xticklabels(), plot_axes.get_yticklabels()], color=color)
+    if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
+    if color_frame:         mplt.setp(ax.spines.values(), color=color)
+    if color_ticks:         mplt.setp([ax.get_xticklines(), ax.get_yticklines()], color=color)
+    if color_ticklabels:    mplt.setp([ax.get_xticklabels(), ax.get_yticklabels()], color=color)
 
 # more on modifying frames here: http://matplotlib.org/examples/pylab_examples/spine_placement_demo.html
 
 def remove_frame(ax=None):
     """ Remove plot frame, including x/y ticks and ticklabels. """
     if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
     ax.set_frame_on(False)
     mplt.xticks([], [])
     mplt.yticks([], [])
@@ -100,6 +123,7 @@ def remove_half_frame(ax=None):
     """ Remove the top and right sides of the plot frame, including x/y ticks. """
     # source: http://stackoverflow.com/questions/925024/how-can-i-remove-the-top-and-right-axis-in-matplotlib#925141
     if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.xaxis.set_ticks_position('bottom')
