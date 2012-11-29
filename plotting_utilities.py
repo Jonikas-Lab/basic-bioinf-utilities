@@ -7,7 +7,10 @@ Various plotting utilities I wrote (usually for matplotlib) - see docstring for 
 # standard library
 import itertools
 import unittest
+import os
 # other packages
+import numpy
+import matplotlib
 import matplotlib.pyplot as mplt
 
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
@@ -129,6 +132,80 @@ def remove_half_frame(ax=None):
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
     mplt.draw()
+
+
+################################ OTHER ADDITIONS ###################################
+
+######### colormaps
+
+def all_colormaps_image(save_as='~/computers_and_programming/colormaps_all_matplotlib.png', close=False):
+    """ Make an image with all the colormaps shown; optionally save to file. """
+    # code from http://matplotlib.org/examples/pylab_examples/show_colormaps.html
+    a = numpy.linspace(0, 1, 256).reshape(1,-1)
+    a = numpy.vstack((a,a))
+    # Get a list of the colormaps in matplotlib.  Ignore the ones that end with '_r' because these are simply 
+    #  reversed versions of ones that don't end with '_r'
+    maps = sorted(m for m in mplt.cm.datad if not m.endswith("_r"))
+    nmaps = len(maps) + 1
+    fig = mplt.figure(figsize=(5,10))
+    fig.subplots_adjust(top=0.99, bottom=0.01, left=0.2, right=0.99)
+    for i,m in enumerate(maps):
+        ax = mplt.subplot(nmaps, 1, i+1)
+        mplt.axis("off")
+        mplt.imshow(a, aspect='auto', cmap=mplt.get_cmap(m), origin='lower')
+        pos = list(ax.get_position().bounds)
+        fig.text(pos[0] - 0.01, pos[1], m, fontsize=10, horizontalalignment='right')
+    mplt.draw()
+    if save_as:     
+        savefig(os.path.expanduser(save_as))
+    if close:
+        mplt.close()
+
+def add_colormap_to_matplotlib(cmap_data, cmap_name, add_reverse_too=True):
+    """ Add a colormap to the matplotlib colormap list. """
+    # Based on code in https://github.com/dmcdougall/matplotlib/blob/85a26dca55c788c97bbf312b0732db222df55530/lib/matplotlib/cm.py
+    # Basically the point is to get matplotlib.cm.get_cmap(cmap_name) to return a cmap instance.
+    cm = matplotlib.cm
+    cm.datad[cmap_name] = cmap_data
+    cm.cmap_d[cmap_name] = cm._generate_cmap(cmap_name, cm.LUTSIZE)
+    if add_reverse_too:
+        reverse_name = cmap_name + '_r'
+        matplotlib.cm.datad[reverse_name] = matplotlib.cm._reverse_cmap_spec(cmap_data)
+        cm.cmap_d[reverse_name] = cm._generate_cmap(reverse_name, cm.LUTSIZE)
+
+# CMRmap, from https://github.com/matplotlib/matplotlib/pull/496/files
+#  (I think it should be in matplotlib already, but it's not in mine!)
+_CMRmap_data = {'red'   : ( (0.000, 0.00, 0.00),
+                            (0.125, 0.15, 0.15),
+                            (0.250, 0.30, 0.30),
+                            (0.375, 0.60, 0.60),
+                            (0.500, 1.00, 1.00),
+                            (0.625, 0.90, 0.90),
+                            (0.750, 0.90, 0.90),
+                            (0.875, 0.90, 0.90),
+                            (1.000, 1.00, 1.00) ),
+                'green' : ( (0.000, 0.00, 0.00),
+                            (0.125, 0.15, 0.15),
+                            (0.250, 0.15, 0.15),
+                            (0.375, 0.20, 0.20),
+                            (0.500, 0.25, 0.25),
+                            (0.625, 0.50, 0.50),
+                            (0.750, 0.75, 0.75),
+                            (0.875, 0.90, 0.90),
+                            (1.000, 1.00, 1.00) ),
+                'blue':   ( (0.000, 0.00, 0.00),
+                            (0.125, 0.50, 0.50),
+                            (0.250, 0.75, 0.75),
+                            (0.375, 0.50, 0.50),
+                            (0.500, 0.15, 0.15),
+                            (0.625, 0.00, 0.00),
+                            (0.750, 0.10, 0.10),
+                            (0.875, 0.50, 0.50),
+                            (1.000, 1.00, 1.00) )}
+add_colormap_to_matplotlib(_CMRmap_data, 'CMRmap')
+
+# MAYBE-TODO add other nice colormaps, from elsewhere or mine:
+#  - https://www.mathworks.com/matlabcentral/fileexchange/26026
 
 
 ################## OLD FUNCTIONS, moved from general_utilities.py
