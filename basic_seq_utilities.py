@@ -42,6 +42,16 @@ FASTA_EXTENSIONS = (FASTA_EXTENSIONS+" "+FASTA_EXTENSIONS.upper()).split(' ')
 FASTQ_EXTENSIONS = (FASTQ_EXTENSIONS+" "+FASTQ_EXTENSIONS.upper()).split(' ')
 assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
 
+### formatting of biological data
+
+def format_base_distance(x):
+    """ Format base distance as a string: 1bp for 1, 12345bp for 12345, 2kb for 2000, 2Mb for 2000000. """
+    x = int(x)
+    if x==0:                return "0bp"
+    elif not x % 1000000:   return "%sMb"%(x/1000000)
+    elif not x % 1000:      return "%skb"%(x/1000)
+    else:                   return "%sbp"%x
+
 ### basic fasta/fastq functions
 
 def write_fasta_line(seqname, seq, OUTFILE=sys.stdout):
@@ -252,6 +262,16 @@ def generate_seq_slices(gene_seq,slice_len,slice_step):
 
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
+
+    def test__format_base_distance(self):
+        assert format_base_distance(0) == "0bp"
+        for x in [1,10,11,100,999, 1001, 1234, 13987291876]:
+            assert format_base_distance(x) == "%sbp"%x
+            assert format_base_distance(x*1000) == "%skb"%x
+            assert format_base_distance(x*1000000) == "%sMb"%x
+        for x in ['a', '1.23', [], [12]]:
+            self.assertRaises((ValueError,TypeError), format_base_distance, x)
+
 
     def test__parse_fastq(self):
         # need to actually run through the whole iterator to test it - defining it isn't enough
