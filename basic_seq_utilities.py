@@ -35,6 +35,10 @@ FASTQ_EXTENSIONS = "fq fastq"
 # Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
 FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
 
+# colors to use for different chromosome types, by default
+CHROMOSOME_TYPE_COLORS = { 'chromosome': 'black', 'scaffold': 'blue', 'chloroplast': 'green', 'mitochondrial': 'red', 
+                          'cassette': '0.6'}
+
 ################## end of global constants ################## 
 
 ### processing global constants
@@ -193,12 +197,9 @@ def chromosome_color(chromosome, color_for_other=None):
     For other types, raise exception if color_for_other is None, otherwise return color_for_other.
     """
     chr_type = chromosome_type(chromosome)
-    if chr_type=='chromosome':              return 'black'
-    elif chr_type=='scaffold':              return 'blue'
-    elif chr_type=='chloroplast':           return 'green'
-    elif chr_type=='mitochondrial':         return 'red'
-    elif chr_type=='cassette':              return '0.6'
-    else:                        
+    try:
+        return CHROMOSOME_TYPE_COLORS[chr_type]
+    except KeyError:
         if color_for_other is not None:     return color_for_other
         else:                               raise ValueError("Can't parse chromosome name %s!"%chromosome)
 
