@@ -245,18 +245,34 @@ def find_seq_between(seq, flankA, flankB, exclusive=True):
     elif exclusive:             return seq[posA+lenA:posB]
     else:                       return seq[posA:posB+lenB]
 
-def generate_seq_slices(gene_seq,slice_len,slice_step):
-    """ Yield (start_pos,slice_seq) pairs with slices covering gene_seq with the given length and step size. """
-    # if the gene will fit in one slice, just return that
-    if slice_len>=len(gene_seq): 
-        yield 0, gene_seq
+def generate_seq_slices(seq, slice_len, step=1, extra_last_slice=True):
+    """ Generate (start_pos,slice_seq) pairs with slices covering seq with the given slice length and step size. 
+
+    Start_pos is zero-based.
+    
+    When seq doesn't cleanly divide into slices with given step/slice_len (i.e. len(seq)-slice_len isn't divisible by step)
+     (for example for 'aaccttgg' with step=3 and slice_len=4):
+     - if extra_last_slice is False, ignore the remainder of seq (at most slice_len-1) 
+        (just generate 'aacc', 'cttg' - the last 'g' is ignored)
+     - if it's True, yield an extra slice from the last slice_len bases of seq, that's less than step distant from the previous slice
+        (after 'aacc' and 'cttg' yield 'ttgg' to cover the last 'g', even though the offset between 'cttg' and 'ttgg' is 1, not 3)
+    """
+    if slice_len <= 0:   raise ValueError("slice_len argument to generate_seq_slices must be a positive integer!")
+    if step <= 0:        raise ValueError("step argument to generate_seq_slices must be a positive integer!")
+    seqlen = len(seq)
+    # if the seq will fit in one slice, just return that
+    if slice_len >= seqlen: 
+        yield 0, seq
         return
-    for pos in range(0,len(gene_seq)-slice_len,slice_step):
-        yield pos, gene_seq[pos:pos+slice_len]
-    # if the sequence isn't evenly divided into correct-length slices, make one last slice covering the last slice_len 
-    #  of the gene (the difference between this slice and the previous one will be under slice_step)
-    if pos<len(gene_seq):
-        yield len(gene_seq)-slice_len, gene_seq[-slice_len:]
+    for pos in range(0, seqlen-slice_len, step):
+        yield pos, seq[pos:pos+slice_len]
+    # Special case after the last normal slice, if there's "leftover" sequence:
+    #  if the sequence isn't evenly divided into correct-length slices, make one last slice covering the last slice_len 
+    #   of the seq (the difference between this slice and the previous one will be <step)
+    #  But only if the next slice would be inside seq at all!  
+    #   if slice<step, for example 'actg' with len 1 and step 2 should be 'a t', never 'a t g'.
+    if (pos+slice_len < seqlen) and (pos+step < seqlen) and extra_last_slice:
+        yield seqlen-slice_len, seq[-slice_len:]
 
 
 ####################################### Unit-tests #########################################
@@ -423,8 +439,37 @@ class Testing_everything(unittest.TestCase):
 
 
     def test__generate_seq_slices(self):
-        pass
-    # TODO implement!
+        # arguments to generate_seq_slices are (seq, slice_len, step);
+        #  the output is a list of (pos,slice_seq) tuples, 
+        #   which I'm mostly switching to [pos_tuple, seq_tuple] with zip for easier typing.
+        # testing step==1
+        assert zip(*generate_seq_slices('actg',1,1)) == [tuple(range(4)), tuple('a c t g'.split())]
+        assert zip(*generate_seq_slices('actg',2,1)) == [tuple(range(3)), tuple('ac ct tg'.split())]
+        assert zip(*generate_seq_slices('actg',3,1)) == [tuple(range(2)), tuple('act ctg'.split())]
+        for slice_len in (4,5,10,100,12345):
+            assert list(generate_seq_slices('actg',slice_len,1)) == [(0, 'actg')]
+        # testing step==2, and the extra_last_slice argument
+        assert list(generate_seq_slices('actg',1,2)) == [(0,'a'), (2,'t')]
+        assert list(generate_seq_slices('actg',2,2)) == [(0,'ac'), (2,'tg')]
+        assert list(generate_seq_slices('actg',3,2,False)) == [(0,'act')]
+        assert list(generate_seq_slices('actg',3,2,True)) == [(0,'act'),(1,'ctg')]
+        for slice_len in (4,5,10,100,12345):
+            assert list(generate_seq_slices('actg',slice_len,1)) == [(0,'actg')]
+        ### bad inputs - note that just making the generator doesn't raise an exception, only iterating over it with G.next!
+        # step can't be 0, negative, or a float (except that it can be a float if seqlen<=slice_len, since it's not used at all then)
+        for slice_len in (1,2,3,4,5,10,100,12345):
+            for step in (0, -1, -2, -100, -1235):
+                G = generate_seq_slices('actg', slice_len, step)
+                self.assertRaises(ValueError, G.next)
+        for slice_len in (1,2,3):
+            for step in (.5, 1.5, 2.1, 9.0001, 4.999, 1235453534.1):
+                G = generate_seq_slices('actg', slice_len, step)
+                self.assertRaises(TypeError, G.next)
+        # slice_len can't be 0 or negative, or a float (but it can be a float if it's >=seqlen, since then it never gets used)
+        for step in (1,2,3,4,5,10,100,12345):
+            for slice_len in (0, -1, -2, -100, -1314, 0.5, 2.1, -100.1, -0.01):
+                G = generate_seq_slices('actg', slice_len, step)
+                self.assertRaises((ValueError,TypeError), G.next)
 
 
 if __name__=='__main__':
