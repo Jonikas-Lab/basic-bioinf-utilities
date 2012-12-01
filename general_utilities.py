@@ -5,11 +5,15 @@ Various general programming/math utilities I wrote - see docstring for each func
 Weronika Patena, 2010-2011
 """
 
+# standard library
 from __future__ import division 
 import sys, os
-import subprocess
-from collections import defaultdict
 import unittest
+from collections import defaultdict
+import pickle as Pickle     # rename so I can use pickle as a function name
+import subprocess
+# other packages
+# my modules
 
 
 ######################################## STRUCTURES / CLASSES / ETC ########################################
@@ -299,11 +303,20 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
     # TODO add to unit-tests? Or some kind of test.
 
 
+def pickle(data, outfile_name, protocol=0):
+    """ Run pickle.dump to save data to the outfile - small convenience function. 
+
+    Pickle protocols: 0 is the backward-compatible version, 1 and 2 are faster but generate binary files.
+    Protocol -1 will choose the highest available.
+    """
+    with open(outfile_name, 'w' if protocol==0 else 'wb') as PICKLEFILE:
+        Pickle.dump(data, PICKLEFILE, protocol)
+
+
 def unpickle(infile_name):
     """ Just run pickle.load on the infile and return the result - small convenience function. """
-    import pickle
     with open(infile_name) as PICKLEFILE:
-        return pickle.load(PICKLEFILE)
+        return Pickle.load(PICKLEFILE)
 
 
 ### Writing to files
