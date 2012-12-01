@@ -10,6 +10,7 @@ import unittest
 import sys
 import re
 import random
+### other packages
 ### my modules
 # help functions
 from parse_fasta import parse_fasta,print_seq
@@ -48,13 +49,24 @@ assert not (set(FASTA_EXTENSIONS) & set(FASTQ_EXTENSIONS))
 
 ### formatting of biological data
 
-def format_base_distance(x):
-    """ Format base distance as a string: 1bp for 1, 12345bp for 12345, 2kb for 2000, 2Mb for 2000000. """
+def format_base_distance(x, approximate=True):
+    """ Format base distance as a string (bp, kb, Mb), with or without approximations. 
+        
+    With approximations:    1bp for 1, 2kb for 1800, 12kb for 12345, 2kb for 2000, 1Mb for 1000000, 2Mb for 2111000. 
+    Without approximations - only use the kb/Mb suffixes if the number is evenly divisible by 1k or 1M: 
+        1bp for 1, 1800bp for 1800, 12345bp for 12345, 2kb for 2000, 2Mb for 2000000, 2111kb for 2111000.. 
+    """
     x = int(x)
-    if x==0:                return "0bp"
-    elif not x % 1000000:   return "%sMb"%(x/1000000)
-    elif not x % 1000:      return "%skb"%(x/1000)
-    else:                   return "%sbp"%x
+    k, M = 10**3, 10**6
+    if approximate:
+        if x >= M:      return "%sMb"%(int(round(x/M)))
+        elif x >= k:    return "%skb"%(int(round(x/k)))
+        else:           return "%sbp"%x
+    else:
+        if x==0:        return "0bp"
+        elif not x % M: return "%sMb"%(x/M)
+        elif not x % k: return "%skb"%(x/k)
+        else:           return "%sbp"%x
 
 ### basic fasta/fastq functions
 
@@ -283,11 +295,24 @@ class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
 
     def test__format_base_distance(self):
-        assert format_base_distance(0) == "0bp"
-        for x in [1,10,11,100,999, 1001, 1234, 13987291876]:
-            assert format_base_distance(x) == "%sbp"%x
-            assert format_base_distance(x*1000) == "%skb"%x
-            assert format_base_distance(x*1000000) == "%sMb"%x
+        for approx in (True,False):
+            assert format_base_distance(0, approx) == "0bp"
+        # with no approximation
+        for x in [1,10,11,100,999, 1001, 10001, 1234, 13987291876]:
+            assert format_base_distance(x, False) == "%sbp"%x
+            assert format_base_distance(x*1000, False) == "%skb"%x
+            assert format_base_distance(x*1000000, False) == "%sMb"%x
+            assert format_base_distance(x*1000+1, False) == "%sbp"%(x*1000+1)
+            assert format_base_distance(x*1000000+1, False) == "%sbp"%(x*1000000+1)
+        # with approximation
+        assert format_base_distance(1, True) == '1bp'
+        assert format_base_distance(101, True) == '101bp'
+        assert format_base_distance(999, True) == '999bp'
+        for base in (1000, 2000, 50000, 999000):
+            for plus in (0,1, 100, 499):
+                assert format_base_distance(base+plus, True) == '%skb'%(base/1000)
+                assert format_base_distance(base*1000+plus, True) == '%sMb'%(base/1000)
+                assert format_base_distance((base+plus)*1000, True) == '%sMb'%(base/1000)
         for x in ['a', '1.23', [], [12]]:
             self.assertRaises((ValueError,TypeError), format_base_distance, x)
 
