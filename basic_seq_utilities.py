@@ -6,6 +6,7 @@ Weronika Patena, 2008-2010
 """
 
 ### basic library
+from __future__ import division 
 import unittest
 import sys
 import re
@@ -64,8 +65,8 @@ def format_base_distance(x, approximate=True):
         else:           return "%sbp"%x
     else:
         if x==0:        return "0bp"
-        elif not x % M: return "%sMb"%(x/M)
-        elif not x % k: return "%skb"%(x/k)
+        elif not x % M: return "%sMb"%(int(x/M))
+        elif not x % k: return "%skb"%(int(x/k))
         else:           return "%sbp"%x
 
 ### basic fasta/fastq functions
@@ -298,6 +299,11 @@ class Testing_everything(unittest.TestCase):
         for approx in (True,False):
             assert format_base_distance(0, approx) == "0bp"
         # with no approximation
+        assert format_base_distance(1, False) == '1bp'
+        assert format_base_distance(101, False) == '101bp'
+        assert format_base_distance(999, False) == '999bp'
+        assert format_base_distance(1001, False) == '1001bp'
+        assert format_base_distance(1000001, False) == '1000001bp'
         for x in [1,10,11,100,999, 1001, 10001, 1234, 13987291876]:
             assert format_base_distance(x, False) == "%sbp"%x
             assert format_base_distance(x*1000, False) == "%skb"%x
@@ -308,11 +314,13 @@ class Testing_everything(unittest.TestCase):
         assert format_base_distance(1, True) == '1bp'
         assert format_base_distance(101, True) == '101bp'
         assert format_base_distance(999, True) == '999bp'
+        assert format_base_distance(1001, True) == '1kb'
+        assert format_base_distance(1000001, True) == '1Mb'
         for base in (1000, 2000, 50000, 999000):
             for plus in (0,1, 100, 499):
-                assert format_base_distance(base+plus, True) == '%skb'%(base/1000)
-                assert format_base_distance(base*1000+plus, True) == '%sMb'%(base/1000)
-                assert format_base_distance((base+plus)*1000, True) == '%sMb'%(base/1000)
+                assert format_base_distance(base+plus, True) == '%skb'%(int(base/1000))
+                assert format_base_distance(base*1000+plus, True) == '%sMb'%(int(base/1000))
+                assert format_base_distance((base+plus)*1000, True) == '%sMb'%(int(base/1000))
         for x in ['a', '1.23', [], [12]]:
             self.assertRaises((ValueError,TypeError), format_base_distance, x)
 
