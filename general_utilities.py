@@ -43,6 +43,14 @@ def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
         new_dict_list.append(new_reduced_dict)
     return new_dict_list
 
+def filter_dict_by_keys(input_dict, good_keys):
+    """ Return copy of input_dict with all keys not in good_keys removed. """
+    # MAYBE-TODO add a bad_keys arg, to do either positive or negative filtering?
+    # make good_keys into a set for speed, if it wasn't one already
+    good_keys = set(good_keys)
+    new_dict = {key:val for (key,val) in input_dict.iteritems() if key in good_keys}
+    return new_dict
+
 def count_list_values(input_list):
     """ Given a list, return a value:number_of_times_value_occurred_in_list dictionary. """
     value_counts = defaultdict(lambda: 0)
@@ -709,6 +717,22 @@ class Testing_everything(unittest.TestCase):
         assert reduce_dicts_to_overlaps([d1,d3]) == [{},{}] 
         assert reduce_dicts_to_overlaps([d1,d2,d3]) == [{},{},{}] 
         assert reduce_dicts_to_overlaps([]) == [] 
+
+    def test__filter_dict_by_keys(self):
+        # edge cases (good_keys empty or containing all the keys)
+        for D in ({}, {1:2}, {x:'a' for x in range(100)}):
+            assert filter_dict_by_keys(D, set()) == {}
+            assert filter_dict_by_keys(D, []) == {}
+            assert filter_dict_by_keys(D, D.keys()) == D
+            assert filter_dict_by_keys(D, range(200)) == D 
+        # more specific tests for a single dict
+        assert filter_dict_by_keys({1:2, 3:4}, [1]) == {1:2}
+        assert filter_dict_by_keys({1:2, 3:4}, [2]) == {}
+        assert filter_dict_by_keys({1:2, 3:4}, [0,1,2]) == {1:2}
+        assert filter_dict_by_keys({1:2, 3:4}, [3]) == {3:4}
+        for keys in ([1,3], [0,1,2,3,4,5], [1,2,3,'a','b','c',(1,2)], range(100)):
+            assert filter_dict_by_keys({1:2, 3:4}, keys) == {1:2, 3:4}
+            assert filter_dict_by_keys({}, keys) == {}
 
     def test__count_list_values(self):
         assert count_list_values([]) == {}
