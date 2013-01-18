@@ -169,6 +169,8 @@ def invert_listdict_tolists(input_dict):
             raise ValueError("invert_listdict_tolists expects all input_dict values to be lists/sets/etc!")
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
 
+# MAYBE-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
+
 def sort_lists_inside_dict(input_dict, reverse=False, key=None):
     """ Given a key:value_list dict, return same dict but with sorted value_lists (using key and reverse args for sort)."""
     new_dict = {}
@@ -177,8 +179,14 @@ def sort_lists_inside_dict(input_dict, reverse=False, key=None):
         else:               new_dict[k] = sorted(l, reverse=reverse, key=key)
     return new_dict
 
-
-# MAYBE-TODO refactor to avoid code duplication between the *_tolists and *_nodups pairs above?
+def flatten_lists(input_val, unique_only=False):
+    """ Given a list or dict of lists/arrays/sets/etc, return list combining all the value lists (or a set if unique_only). """
+    if isinstance(input_val, dict):
+        input_val = input_val.values()
+    all_vals = sum([list(x) for x in input_val], [])
+    if unique_only: return set(all_vals)
+    else:           return all_vals
+    # TODO unit-test!
 
 class keybased_defaultdict(defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
