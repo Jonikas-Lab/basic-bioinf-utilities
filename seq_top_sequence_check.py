@@ -14,7 +14,7 @@ import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from seq_basic_utilities import check_fasta_fastq_format
+from seq_basic_utilities import check_fasta_fastq_format, get_seq_count_from_collapsed_header
 
 
 def define_option_parser():
