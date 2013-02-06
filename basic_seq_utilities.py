@@ -11,6 +11,7 @@ import unittest
 import sys
 import re
 import random
+import collections
 ### other packages
 ### my modules
 # help functions
@@ -159,6 +160,26 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
         return 1
     else:                   
         raise ValueError("Can't parse header %s to get original pre-fastx_collapser sequence count!"%header)
+
+
+### analyzing sequences
+
+def GC_content(seq, error_other_bases=True): 
+    """ Return the fraction of the sequence bases that are GC. 
+
+    If sequence contains non-ATGC bases, raise an exception, 
+     or ignore them (not counting them in the total) if error_other_bases is False.
+    """
+    normal_bases = 'ACTG'
+    seq = seq.upper()
+    base_counts = collections.Counter(seq)
+    total_bases = sum([base_counts[base] for base in normal_bases])
+    if error_other_bases and not total_bases==len(seq):
+        raise ValueError("sequence %s in GC_content contains non-ACTG bases! Pass error_other_bases=False to ignore them."%seq)
+    if total_bases==0:
+        raise ValueError("sequence %s in GC_content has no ACTG bases - can't calculate GC content!"%seq)
+    GC_bases = sum([base_counts[base] for base in 'GC'])
+    return GC_bases/total_bases
 
 
 ### utilities to deal with standard genomic chromosome names (sort them correctly etc)
@@ -352,6 +373,18 @@ class Testing_everything(unittest.TestCase):
             for count in [0,1,3,5,123214]:
                 assert get_seq_count_from_collapsed_header(header_prefix+'-'+str(count)) == count
 
+
+    def test__GC_content(self):
+        for no_GC_seq in 'aaaa AAA a TT ATTTta'.split():
+            assert GC_content(no_GC_seq) == 0
+        for all_GC_seq in 'GGGG gggg C cc GCcg'.split():
+            assert GC_content(all_GC_seq) == 1
+        for half_GC_seq in 'ATGC tagc AAAGGC ttGGGt'.split():
+            assert GC_content(half_GC_seq) == 0.5
+        seq_with_Ns = 'ATGCNNNNNNNN'
+        self.assertRaises(ValueError, GC_content, seq_with_Ns, error_other_bases=True)
+        assert GC_content(seq_with_Ns, error_other_bases=False) == 0.5
+        assert GC_content('ATTG') == GC_content('ATTGnnnnnnnnnn', False) == 0.25
 
     def test__chromosome_type(self):
         for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3 chromosome1 chr_3 chr4'.split()):
