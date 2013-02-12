@@ -16,9 +16,10 @@ import matplotlib.pyplot as mplt
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
 
-def savefig(figname, padding=0.2, dpi=300):
-    """ Save current figure as figname, with bbox_inches='tight' and given padding and dpi. """
-    mplt.savefig(figname, bbox_inches='tight', pad_inches=padding, dpi=dpi)
+def savefig(figname, extensions=['png'], padding=0.2, dpi=300):
+    """ Save current figure as figname.ext for each extension, with bbox_inches='tight' and given padding and dpi. """
+    for extension in extensions:
+        mplt.savefig('%s.%s'%(figname,extension), bbox_inches='tight', pad_inches=padding, dpi=dpi)
 
 
 ################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
