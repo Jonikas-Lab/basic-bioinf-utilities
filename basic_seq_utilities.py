@@ -25,6 +25,8 @@ from reverse import reverse
 
 ################## global constants ################## 
 
+NORMAL_DNA_BASES = 'ACTG'
+
 SEQ_ENDS = ['5prime','3prime']
 SEQ_STRANDS = ['+','-']
 SEQ_DIRECTIONS = ['forward','reverse']
@@ -180,6 +182,20 @@ def GC_content(seq, error_other_bases=True):
         raise ValueError("sequence %s in GC_content has no ACTG bases - can't calculate GC content!"%seq)
     GC_bases = sum([base_counts[base] for base in 'GC'])
     return GC_bases/total_bases
+
+
+def check_seq_against_pattern(seq, pattern):
+    """ Check if sequence string matches pattern string (ACTGN only); return True/False. Inputs must be same length. """
+    seq = seq.upper()
+    pattern = pattern.upper()
+    if not len(seq)==len(pattern):
+        raise ValueError("In check_seq_against_pattern, sequence and pattern must be same length! %s, %s"%(seq,pattern))
+        # MAYBE-TODO add an option to pad one or the other (left,right,centered) if different lengths?
+    if not all([b in NORMAL_DNA_BASES+'N' for b in seq+pattern]):
+        raise ValueError("In check_seq_against_pattern, sequence and pattern must contain ACTGN only! %s, %s"%(seq,pattern))
+        # MAYBE-TODO expand to the other ambiguous bases, like W, R, etc?
+        # MAYBE-TODO expand to RNA?
+    return all([(p==s or 'N' in (s,p)) for (s,p) in zip(seq,pattern)])
 
 
 ### utilities to deal with standard genomic chromosome names (sort them correctly etc)
@@ -385,6 +401,39 @@ class Testing_everything(unittest.TestCase):
         self.assertRaises(ValueError, GC_content, seq_with_Ns, error_other_bases=True)
         assert GC_content(seq_with_Ns, error_other_bases=False) == 0.5
         assert GC_content('ATTG') == GC_content('ATTGnnnnnnnnnn', False) == 0.25
+
+
+    def test__check_seq_against_pattern(self):
+        # fails with illegal characters
+        for bad_seq in 'fas 123 hjakdsh ATGW'.split():
+            same_length_seq = ''.join('G' for _ in bad_seq)
+            self.assertRaises(ValueError, check_seq_against_pattern, bad_seq, same_length_seq)
+            self.assertRaises(ValueError, check_seq_against_pattern, same_length_seq, bad_seq)
+        # fails with different lengths
+        for seq in 'ACT AAAAAA G'.split():
+            self.assertRaises(ValueError, check_seq_against_pattern, seq, '')
+            self.assertRaises(ValueError, check_seq_against_pattern, '', seq)
+            self.assertRaises(ValueError, check_seq_against_pattern, seq, 'NNNNNNNNNNN')
+            self.assertRaises(ValueError, check_seq_against_pattern, 'NNNNNNNNNNN', seq)
+            self.assertRaises(ValueError, check_seq_against_pattern, seq, seq+'A')
+            self.assertRaises(ValueError, check_seq_against_pattern, seq+'A', seq)
+        # True if seq==pattern
+        for seq in 'ACT AAAAAA G'.split():
+            assert check_seq_against_pattern(seq, seq)
+        assert check_seq_against_pattern('', '')
+        # True if either seq or pattern is all Ns
+        for seq in 'ACT AAAAAA G'.split():
+            same_length_Ns = ''.join('N' for _ in seq)
+            assert check_seq_against_pattern(seq, same_length_Ns)
+            assert check_seq_against_pattern(same_length_Ns, seq)
+        # more complex cases by hand
+        assert check_seq_against_pattern('AAA', 'ANN')
+        assert check_seq_against_pattern('AAT', 'ANN')
+        assert check_seq_against_pattern('AAA', 'ANA')
+        assert not check_seq_against_pattern('AAT', 'ANA')
+        assert not check_seq_against_pattern('AAA', 'GNN')
+        assert check_seq_against_pattern('GGG', 'GNN')
+
 
     def test__chromosome_type(self):
         for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3 chromosome1 chr_3 chr4'.split()):
