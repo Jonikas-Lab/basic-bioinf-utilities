@@ -12,6 +12,7 @@ import sys
 import re
 import random
 import collections
+import itertools
 ### other packages
 ### my modules
 # help functions
@@ -172,10 +173,9 @@ def GC_content(seq, error_other_bases=True):
     If sequence contains non-ATGC bases, raise an exception, 
      or ignore them (not counting them in the total) if error_other_bases is False.
     """
-    normal_bases = 'ACTG'
     seq = seq.upper()
     base_counts = collections.Counter(seq)
-    total_bases = sum([base_counts[base] for base in normal_bases])
+    total_bases = sum([base_counts[base] for base in NORMAL_DNA_BASES])
     if error_other_bases and not total_bases==len(seq):
         raise ValueError("sequence %s in GC_content contains non-ACTG bases! Pass error_other_bases=False to ignore them."%seq)
     if total_bases==0:
@@ -196,6 +196,63 @@ def check_seq_against_pattern(seq, pattern):
         # MAYBE-TODO expand to the other ambiguous bases, like W, R, etc?
         # MAYBE-TODO expand to RNA?
     return all([(p==s or 'N' in (s,p)) for (s,p) in zip(seq,pattern)])
+
+
+def get_all_seq_length(seq_list):
+    """ Given a list of sequence strings, return N if all seqs are length N; raise ValueError if lengths differ or list was empty."""
+    if not seq_list:
+        raise ValueError("Empty sequence list passed - cannot give length!")
+    seq_lengths = set([len(seq) for seq in seq_list])
+    if len(seq_lengths) > 1:
+        raise ValueError("Sequences have different lengths - cannot give single length! %s"%seq_lengths)
+    return seq_lengths.pop()
+
+
+def base_count_dict(seq_count_list, convert_counts=lambda x: x):
+    """ Given a list of (seq,count) tuples, return a base:base_count_list_for_each_position dict.
+
+    (For example input [(ACG,1),(AAC,1)] will yield base counts of {A:[2,1,0], C:[0,1,1], G:[0,0,1], T:[0,0,0]}.)
+    Convert_counts is a function that takes the readcount for a sequence and outputs how many times it should be counted:
+     the reasonable output values are always 1, the readcount itself, or some rounding of readcount/average_readcount_per_mutant.
+
+    Ignore bases other than %s.
+    """%NORMAL_DNA_BASES
+    # if input list is empty, return empty lists for each base
+    if not seq_count_list:
+        return {base: [] for base in NORMAL_DNA_BASES}
+    # get seq length, make sure they're all the same
+    seq_length = get_all_seq_length(zip(*seq_count_list)[0])
+    # initialize the base-count lists to the right length, and fill it out by going over all the seqs
+    base_count_dict = {base: [0 for _ in range(seq_length)] for base in NORMAL_DNA_BASES}
+    for (seq,count) in seq_count_list:
+        for position, base in enumerate(seq.upper()):
+            if base in NORMAL_DNA_BASES:
+                base_count_dict[base][position] += convert_counts(count)
+                # MAYBE-TODO add an option to NOT ignore bases that aren't in NORMAL_DNA_BASES?
+    return base_count_dict
+
+
+def base_fraction_dict_from_count_dict(base_count_list_dict):
+    """ Take output of base_count_dict, return normalized fractions instead of counts. Ignore bases other than %s"""%NORMAL_DNA_BASES
+    base_fraction_list_dict = {}
+    base_totals = [sum(single_pos_counts) for single_pos_counts in zip(*base_count_list_dict.values())]
+    for base in NORMAL_DNA_BASES:
+        base_fraction_list_dict[base] = [count/total for (count,total) in zip(base_count_list_dict[base], base_totals)]
+        # MAYBE-TODO add an option to NOT ignore bases that aren't in NORMAL_DNA_BASES?
+    return base_fraction_list_dict
+
+
+def base_fraction_dict(seq_count_list, convert_counts=lambda x: x):
+    """ Same as base_count_dict, but returns normalized fractions instead of counts. Ignore bases other than %s."""%NORMAL_DNA_BASES
+    return base_fraction_dict_from_count_dict(base_count_dict(seq_count_list, convert_counts))
+
+
+def base_fractions_from_GC_content(overall_GC_content):
+    """ Given a GC content, return base:fraction dict. Example: 0.6 gives {0.3 for G/C, 0.2 for A/T}. """
+    if not 0 <= overall_GC_content <= 1:
+        raise ValueError("overall_GC_content must be a number between 0 and 1 (inclusive)!")
+    return { 'G': overall_GC_content/2, 'A': (1-overall_GC_content)/2, 
+             'C': overall_GC_content/2, 'T': (1-overall_GC_content)/2 }
 
 
 ### utilities to deal with standard genomic chromosome names (sort them correctly etc)
@@ -402,7 +459,6 @@ class Testing_everything(unittest.TestCase):
         assert GC_content(seq_with_Ns, error_other_bases=False) == 0.5
         assert GC_content('ATTG') == GC_content('ATTGnnnnnnnnnn', False) == 0.25
 
-
     def test__check_seq_against_pattern(self):
         # fails with illegal characters
         for bad_seq in 'fas 123 hjakdsh ATGW'.split():
@@ -434,6 +490,48 @@ class Testing_everything(unittest.TestCase):
         assert not check_seq_against_pattern('AAA', 'GNN')
         assert check_seq_against_pattern('GGG', 'GNN')
 
+    def test__get_all_seq_length(self):
+        self.assertRaises(ValueError, get_all_seq_length, [])
+        self.assertRaises(ValueError, get_all_seq_length, ['AA', 'C'])
+        self.assertRaises(ValueError, get_all_seq_length, ['AA', 'CCCCCCCC'])
+        for length in (0,1,10,1000):
+            assert get_all_seq_length(['A'*length]) == length
+            assert get_all_seq_length(['N'*length]) == length
+            assert get_all_seq_length(['A'*length, 'A'*length]) == length
+            assert get_all_seq_length(['N'*length, 'C'*length, 'G'*length]) == length
+            assert get_all_seq_length(['AC'*length, 'GT'*length]) == length*2
+            self.assertRaises(ValueError, get_all_seq_length, ['A'*length, 'A'*(length+1)])
+
+    def test__base_count_dict(self):
+        # basic functionality
+        assert base_count_dict([]) == {base:[] for base in NORMAL_DNA_BASES}
+        assert base_count_dict([('ACG',1),('AAC',1)]) == {'A':[2,1,0], 'C':[0,1,1], 'G':[0,0,1], 'T':[0,0,0]}
+        # ignores Ns
+        assert base_count_dict([('ACG',1),('AAC',1),('NNN',10)]) == {'A':[2,1,0], 'C':[0,1,1], 'G':[0,0,1], 'T':[0,0,0]}
+        # fails with different-length sequences
+        self.assertRaises(ValueError, base_count_dict, [('ACG',1),('AA',1)])
+        # testing the convert_counts function
+        assert base_count_dict([('ACG',1),('AAC',1)], lambda x:0) ==  {base:[0,0,0] for base in NORMAL_DNA_BASES}
+        assert base_count_dict([('ACG',1),('AAC',1)], lambda x:10*x) ==  {'A':[20,10,0], 'C':[0,10,10], 'G':[0,0,10], 'T':[0,0,0]}
+        for N1, N2 in itertools.product((1,2,10,100), (1,2,10,100)):
+            assert base_count_dict([('ACG',N1),('AAC',N2)], lambda x:1) == {'A':[2,1,0], 'C':[0,1,1], 'G':[0,0,1], 'T':[0,0,0]}
+        assert base_count_dict([('ACG',1),('AAC',10)]) ==  {'A':[11,10,0], 'C':[0,1,10], 'G':[0,0,1], 'T':[0,0,0]}
+
+    def test__base_fraction_dict(self):
+        # this mostly just uses base_count_dict, so I'm not going to test it too carefully
+        assert base_fraction_dict([]) == {base:[] for base in NORMAL_DNA_BASES}
+        assert base_fraction_dict([('ACG',1),('AAC',1)]) == {'A':[1,0.5,0], 'C':[0,0.5,0.5], 'G':[0,0,0.5], 'T':[0,0,0]}
+        assert base_fraction_dict([('ACG',1),('AAC',1),('NNN',10)]) == {'A':[1,0.5,0], 'C':[0,0.5,0.5], 'G':[0,0,0.5], 'T':[0,0,0]}
+
+    def test__base_fractions_from_GC_content(self):
+        for bad_GC_content in (-1, -0.000000000001, 2, 100, 1.000000001, 'ACTA', []):
+            self.assertRaises(ValueError, base_fractions_from_GC_content, bad_GC_content)
+        for GC_content in [x/100 for x in range(100)]:
+            # fuzzy comparison of floats
+            assert 0.999999 <= sum(base_fractions_from_GC_content(GC_content).values()) <= 1.000001
+            assert set(base_fractions_from_GC_content(GC_content).keys()) == set(NORMAL_DNA_BASES)
+        assert base_fractions_from_GC_content(0.5) == {base:0.25 for base in NORMAL_DNA_BASES}
+        assert base_fractions_from_GC_content(0.2) == {'C':0.1, 'G':0.1, 'A':0.4, 'T':0.4}
 
     def test__chromosome_type(self):
         for chrom in ('chromosome_1 chromosome_12 chromosome_FOO chromosome_1_2_3 chromosome1 chr_3 chr4'.split()):
