@@ -13,6 +13,7 @@ import re
 import random
 import collections
 import itertools
+import math
 ### other packages
 ### my modules
 # help functions
@@ -233,17 +234,24 @@ def base_count_dict(seq_count_list, convert_counts=lambda x: x):
 
 
 def base_fraction_dict_from_count_dict(base_count_list_dict):
-    """ Take output of base_count_dict, return normalized fractions instead of counts. Ignore bases other than %s"""%NORMAL_DNA_BASES
+    """ Take output of base_count_dict, return normalized fractions instead of counts. 
+
+    Ignore bases other than %s.  If there are no valid bases at some position, return all 'NaN' fractions for that position.
+    """%NORMAL_DNA_BASES
     base_fraction_list_dict = {}
     base_totals = [sum(single_pos_counts) for single_pos_counts in zip(*base_count_list_dict.values())]
     for base in NORMAL_DNA_BASES:
-        base_fraction_list_dict[base] = [count/total for (count,total) in zip(base_count_list_dict[base], base_totals)]
+        base_fraction_list_dict[base] = [(count/total if total else float('nan')) 
+                                         for (count,total) in zip(base_count_list_dict[base], base_totals)]
         # MAYBE-TODO add an option to NOT ignore bases that aren't in NORMAL_DNA_BASES?
     return base_fraction_list_dict
 
 
 def base_fraction_dict(seq_count_list, convert_counts=lambda x: x):
-    """ Same as base_count_dict, but returns normalized fractions instead of counts. Ignore bases other than %s."""%NORMAL_DNA_BASES
+    """ Same as base_count_dict, but returns normalized fractions instead of counts. 
+
+    Ignore bases other than %s.  If there are no valid bases at some position, return all 'NaN' fractions for that position.
+    """%NORMAL_DNA_BASES
     return base_fraction_dict_from_count_dict(base_count_dict(seq_count_list, convert_counts))
 
 
@@ -522,6 +530,12 @@ class Testing_everything(unittest.TestCase):
         assert base_fraction_dict([]) == {base:[] for base in NORMAL_DNA_BASES}
         assert base_fraction_dict([('ACG',1),('AAC',1)]) == {'A':[1,0.5,0], 'C':[0,0.5,0.5], 'G':[0,0,0.5], 'T':[0,0,0]}
         assert base_fraction_dict([('ACG',1),('AAC',1),('NNN',10)]) == {'A':[1,0.5,0], 'C':[0,0.5,0.5], 'G':[0,0,0.5], 'T':[0,0,0]}
+        # checking a case where some bases are always N, so the total is 0 and all the fractions are NaN - more complicated
+        #  due to NaN comparison (NaN!=NaN), so need to split it up and use isnan function.
+        NaN = 'nan'
+        output = base_fraction_dict([('CCN',1),('ANN',1)]) 
+        transformed_output = {key:[NaN if math.isnan(x) else x for x in val] for key,val in output.items()}
+        assert transformed_output == {'A':[0.5,0,NaN], 'C':[0.5,1,NaN], 'G':[0,0,NaN], 'T':[0,0,NaN]}
 
     def test__base_fractions_from_GC_content(self):
         for bad_GC_content in (-1, -0.000000000001, 2, 100, 1.000000001, 'ACTA', []):
