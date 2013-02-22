@@ -168,19 +168,19 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
 
 ### analyzing sequences
 
-def GC_content(seq, error_other_bases=True): 
+def GC_content(seq, ignore_other_bases=False): 
     """ Return the fraction of the sequence bases that are GC. 
 
     If sequence contains non-ATGC bases, raise an exception, 
-     or ignore them (not counting them in the total) if error_other_bases is False.
+     or ignore them (not counting them in the total) if ignore_other_bases is True.
     """
     seq = seq.upper()
     base_counts = collections.Counter(seq)
     total_bases = sum([base_counts[base] for base in NORMAL_DNA_BASES])
-    if error_other_bases and not total_bases==len(seq):
-        raise ValueError("sequence %s in GC_content contains non-ACTG bases! Pass error_other_bases=False to ignore them."%seq)
+    if not ignore_other_bases and not total_bases==len(seq):
+        raise ValueError("sequence passed to GC_content contains non-ACTG bases! Pass ignore_other_bases=True to ignore them.")
     if total_bases==0:
-        raise ValueError("sequence %s in GC_content has no ACTG bases - can't calculate GC content!"%seq)
+        raise ValueError("sequence passed to GC_content has no ACTG bases - can't calculate GC content!")
     GC_bases = sum([base_counts[base] for base in 'GC'])
     return GC_bases/total_bases
 
@@ -463,9 +463,9 @@ class Testing_everything(unittest.TestCase):
         for half_GC_seq in 'ATGC tagc AAAGGC ttGGGt'.split():
             assert GC_content(half_GC_seq) == 0.5
         seq_with_Ns = 'ATGCNNNNNNNN'
-        self.assertRaises(ValueError, GC_content, seq_with_Ns, error_other_bases=True)
-        assert GC_content(seq_with_Ns, error_other_bases=False) == 0.5
-        assert GC_content('ATTG') == GC_content('ATTGnnnnnnnnnn', False) == 0.25
+        self.assertRaises(ValueError, GC_content, seq_with_Ns, ignore_other_bases=False)
+        assert GC_content(seq_with_Ns, ignore_other_bases=True) == 0.5
+        assert GC_content('ATTG') == GC_content('ATTGnnnnnnnnnn', True) == 0.25
 
     def test__check_seq_against_pattern(self):
         # fails with illegal characters
