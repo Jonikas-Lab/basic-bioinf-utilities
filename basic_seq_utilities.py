@@ -168,21 +168,20 @@ def get_seq_count_from_collapsed_header(header, return_1_on_failure=False):
 
 ### analyzing sequences
 
-def GC_content(seq, ignore_other_bases=False): 
+def GC_content(seq, ignore_other_bases=False):
     """ Return the fraction of the sequence bases that are GC. 
 
-    If sequence contains non-ATGC bases, raise an exception, 
-     or ignore them (not counting them in the total) if ignore_other_bases is True.
-    """
+    If sequence contains non-%s bases, raise an exception, or ignore them (not counting them in the total) if ignore_other_bases is True.
+    """%NORMAL_DNA_BASES
     seq = seq.upper()
     base_counts = collections.Counter(seq)
-    total_bases = sum([base_counts[base] for base in NORMAL_DNA_BASES])
-    if not ignore_other_bases and not total_bases==len(seq):
-        raise ValueError("sequence passed to GC_content contains non-ACTG bases! Pass ignore_other_bases=True to ignore them.")
-    if total_bases==0:
-        raise ValueError("sequence passed to GC_content has no ACTG bases - can't calculate GC content!")
+    total_normal_bases = sum([base_counts[base] for base in NORMAL_DNA_BASES])
+    if not ignore_other_bases and not total_normal_bases==len(seq):
+        raise ValueError("sequence passed to GC_content contains non-%s bases! Pass ignore_other_bases=True to ignore them."%NORMAL_DNA_BASES)
+    if total_normal_bases==0:
+        raise ValueError("sequence passed to GC_content has no %s bases - can't calculate GC content!"%NORMAL_DNA_BASES)
     GC_bases = sum([base_counts[base] for base in 'GC'])
-    return GC_bases/total_bases
+    return GC_bases/total_normal_bases
 
 
 def check_seq_against_pattern(seq, pattern):
