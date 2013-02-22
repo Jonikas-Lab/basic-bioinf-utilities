@@ -208,26 +208,32 @@ def get_all_seq_length(seq_list):
     return seq_lengths.pop()
 
 
-def base_count_dict(seq_count_list, convert_counts=lambda x: x):
+def base_count_dict(seq_count_list, convert_counts=lambda x: x, skip_seq_length_check=False):
     """ Given a list of (seq,count) tuples, return a base:base_count_list_for_each_position dict.
 
     (For example input [(ACG,1),(AAC,1)] will yield base counts of {A:[2,1,0], C:[0,1,1], G:[0,0,1], T:[0,0,0]}.)
     Convert_counts is a function that takes the readcount for a sequence and outputs how many times it should be counted:
      the reasonable output values are always 1, the readcount itself, or some rounding of readcount/average_readcount_per_mutant.
 
+    Normally program checks that all sequences are the same length first - to disable this (for large inputs etc), 
+     pass skip_seq_length_check=True.
+
     Ignore bases other than %s.
     """%NORMAL_DNA_BASES
     # if input list is empty, return empty lists for each base
     if not seq_count_list:
         return {base: [] for base in NORMAL_DNA_BASES}
-    # get seq length, make sure they're all the same
-    seq_length = get_all_seq_length(zip(*seq_count_list)[0])
+    # get seq length, make sure they're all the same (or skip if desired
+    if skip_seq_length_check:   seq_length = len(seq_count_list[0][0])
+    else:                       seq_length = get_all_seq_length(zip(*seq_count_list)[0])
     # initialize the base-count lists to the right length, and fill it out by going over all the seqs
     base_count_dict = {base: [0 for _ in range(seq_length)] for base in NORMAL_DNA_BASES}
     for (seq,count) in seq_count_list:
         for position, base in enumerate(seq.upper()):
-            if base in NORMAL_DNA_BASES:
+            try:
                 base_count_dict[base][position] += convert_counts(count)
+            except KeyError:
+                pass
                 # MAYBE-TODO add an option to NOT ignore bases that aren't in NORMAL_DNA_BASES?
     return base_count_dict
 
