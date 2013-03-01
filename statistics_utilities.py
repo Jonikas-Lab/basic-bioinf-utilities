@@ -100,8 +100,6 @@ def chisquare_independence(category_counts_a, category_counts_b, dof_subtract=0,
     full_sum = sum_a + sum_b
     both_count_totals_norm_a = both_count_totals*sum_a/full_sum
     both_count_totals_norm_b = both_count_totals*sum_b/full_sum
-    assert sum(both_count_totals_norm_a) == sum_a
-    assert sum(both_count_totals_norm_b) == sum_b
     all_expected = numpy.append(both_count_totals_norm_a, both_count_totals_norm_b)
     # Degrees-of-freedom adjustment (see docstring example for details)
     proper_dof = len(category_counts_b) - 1
