@@ -16,10 +16,27 @@ import matplotlib.pyplot as mplt
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
 
-def savefig(figname, extensions=['png'], padding=0.2, dpi=300):
-    """ Save current figure as figname.ext for each extension, with bbox_inches='tight' and given padding and dpi. """
-    for extension in extensions:
-        mplt.savefig('%s.%s'%(figname,extension), bbox_inches='tight', pad_inches=padding, dpi=dpi)
+def savefig(figname, extensions=['png'], padding=0.2, dpi=300, dont_check_figname=False):
+    """ Save current figure as figname if figname has an extension, or as figname.ext for each extension, with given padding/dpi. 
+    
+    Uses bbox_inches='tight' to get rid of extra padding and make sure no text/elements are outside the figure.
+   
+    If figname looks like it has an extension (basename contains '.'), ignore extensions (and print a message). 
+    Extensions can be a list or a space-separated string.
+    """
+    try:                    extensions = extensions.split()
+    except AttributeError:  pass
+    kwargs = dict(bbox_inches='tight', pad_inches=padding, dpi=dpi)
+    if os.path.splitext(figname)[1]:
+        if extensions:
+            print "Given filename %s already has an extension (%s), so ignoring the extensions (%s)."%(
+                figname, os.path.splitext(figname)[1], ', '.join(extensions))
+        mplt.savefig(figname, **kwargs)
+    else:
+        if not extensions:
+            raise ValueError("No extension given, and filename has no extension (%s) - not saving figure!"%figname)
+        for extension in extensions:    
+            mplt.savefig('%s.%s'%(figname,extension), **kwargs)
 
 
 ################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
