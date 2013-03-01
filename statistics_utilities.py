@@ -114,6 +114,19 @@ def chisquare_independence(category_counts_a, category_counts_b, dof_subtract=0,
     else:                   return chisq, pval
 
 
+def FDR_adjust_pvalues(pvalue_list, N=None, method='BH'):
+    """ Adjust a list of p-values for false discovery rate using R's stats::p.adjust function.
+
+    N and method are passed to R_stats.p_adjust: 
+     - N is the number of comparisons (if left unspecified, defaults to len(pvalue_list), I think)
+     - method is the name of the adjustment method to use (inherited from R)
+    """
+    if not method in R_stats.p_adjust_methods:
+        raise ValueError("Unknown method %s - method must be one of (%s)!"%(method, ', '.join(R_stats.p_adjust_methods)))
+    if N is None:   return R_stats.p_adjust(FloatVector(pvalue_list), method=method)
+    else:           return R_stats.p_adjust(FloatVector(pvalue_list), method=method, n=N)
+
+
 ######################################## TESTS FOR THIS FILE ########################################
 
 class Testing_everything(unittest.TestCase):
@@ -147,6 +160,28 @@ class Testing_everything(unittest.TestCase):
         chisq,pval = chisquare_independence([200, 150, 50], [250, 300, 50], dof_subtract=0, return_pvalue_only=False, min_count=1)
         assert round(chisq,1) == 16.2
         assert round(pval,4) == 0.0003
+
+    def test__FDR_adjust_pvalues(self):
+        self.assertRaises(ValueError, FDR_adjust_pvalues, [0,0.1,1], method='FAKE')
+        # test based on https://udel.edu/~mcdonald/statmultcomp.html, MODIFIED.
+        #  I'm just implementing the math as described on the website, NOT using the output values given on the webpage 
+        #   (because they're not q-values but comparison values)
+        #  Also, R's p_adjust gives different results than the described math for identical p-values, so I'm not including any. 
+        #   (which makes sense - it gives the same adjusted p-value for each identical p-value, rather than different ones)
+        #  Actually the results seem different for even somewhat similar values, too... I edited the example to remove them, 
+        #   to at least make sure this is APPROXIMATELY right.  I'm pretty sure R isn't wrong, anyway.  MAYBE-TODO better test?
+        input_pvalues = [0.010, 0.032, 0.07, 0.20, 0.38, 0.68, 0.97]
+        output = FDR_adjust_pvalues(input_pvalues, N=None, method='BH')
+        # Calculate the adjusted p-values (which are the largest Q-values for which P<(i/m)Q, i.e. Pm/i), 
+        #  and check that they match the output, using self.assertAlmostEqual for approximate float comparison:
+        m = len(input_pvalues)
+        expected_adjusted_pvalues = [p*m/(i+1) for (i,p) in enumerate(input_pvalues)]
+        for obs,exp in zip(output, expected_adjusted_pvalues): self.assertAlmostEqual(obs,exp)
+        # check that we get the same adjusted p-values regardless of the order in which they're put in
+        for _ in range(10):
+            random.shuffle(input_pvalues)
+            output = FDR_adjust_pvalues(input_pvalues, N=None, method='BH')
+            for obs,exp in zip(sorted(output), expected_adjusted_pvalues): self.assertAlmostEqual(obs,exp)
 
 
 if __name__=='__main__':
