@@ -109,9 +109,7 @@ def chisquare_independence(category_counts_a, category_counts_b, dof_subtract=0,
     extra_dof_adjustment = proper_dof - transformed_dof
     full_dof_subtract = dof_subtract - extra_dof_adjustment
     # do the chi-square goodness-of-fit test of observed vs expected
-    chisq, pval = chisquare_goodness_of_fit(all_observed, all_expected, full_dof_subtract, return_pvalue_only, min_count)
-    if return_pvalue_only:  return pval
-    else:                   return chisq, pval
+    return chisquare_goodness_of_fit(all_observed, all_expected, full_dof_subtract, return_pvalue_only, min_count)
 
 
 def FDR_adjust_pvalues(pvalue_list, N=None, method='BH'):
