@@ -116,6 +116,9 @@ def FDR_adjust_pvalues(pvalue_list, N=None, method='BH'):
     N and method are passed to R_stats.p_adjust: 
      - N is the number of comparisons (if left unspecified, defaults to len(pvalue_list), I think)
      - method is the name of the adjustment method to use (inherited from R)
+
+    Note that this MUST be done after all the p-values are already collected, on the full list of p-values at once:
+     trying to do it on single p-values, even with adjusted N, will give different results!
     """
     if not method in R_stats.p_adjust_methods:
         raise ValueError("Unknown method %s - method must be one of (%s)!"%(method, ', '.join(R_stats.p_adjust_methods)))
