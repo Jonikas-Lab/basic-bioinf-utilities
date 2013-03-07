@@ -222,9 +222,43 @@ _CMRmap_data = {'red'   : ( (0.000, 0.00, 0.00),
                             (1.000, 1.00, 1.00) )}
 add_colormap_to_matplotlib(_CMRmap_data, 'CMRmap')
 
+### trying to make a green_heat colormap, same as gist_heat but green instead of red. 
+# that's NOT just white-green-black - there's yellow involved too!  Maybe if I switched red with green in that map, I'd get a good green one... But they're functions rather than value lists, so it's complicated... I could try it with 'hot' instead, that has numbers, but it's not as nice.
+
+def switch_colormap_colors(source_cmap_name, color_cycle, new_cmap_name, add_reverse_too=True):
+    """ Make a colormap that's source_cmap_name with colors switched according to color_cycle, and save it as new_cmap_name. 
+    
+    Color_cycle must be a list of 2 or 3 colors (out of blue, green, red):
+     - if it's 2 colors, those two will be switched and the third left constant
+     - if it's 3 colors, move color1 data to color2, color2 data to color3, and color3 data to color1.
+    """
+    cm = matplotlib.cm
+    all_colors = set('blue green red'.split())
+    for color in color_cycle:
+        if color not in all_colors:
+            raise ValueError("Illegal color %s in color_cycle - should be one of (%s)!"%(color, ', '.join(all_colors)))
+    if len(color_cycle) < 2:
+        raise ValueError("Color_cycle must contain 2 or 3 distinct colors! Passed %s: %s!"%(len(color_cycle),', '.join(color_cycle)))
+    if len(set(color_cycle)) != len(color_cycle):
+        raise ValueError("All colors in color_cycle must be different! (%s, %s)"%(color1, color2))
+    source_cmap_data = dict(cm.datad[source_cmap_name])
+    # make a new copy of the source cmap data for the new cmap (so that colors not in color_cycle stay the same).
+    new_cmap_data = dict(source_cmap_data)
+    for from_color, to_color in zip(color_cycle, color_cycle[1:] + [color_cycle[0]]):
+        new_cmap_data[to_color] = source_cmap_data[from_color]
+    add_colormap_to_matplotlib(new_cmap_data, new_cmap_name, add_reverse_too)
+
+# make all the different-color variants of the gist_heat colormap (or just some of them if some are commented out)
+switch_colormap_colors('gist_heat', 'red green'.split(), 'green_heat')
+switch_colormap_colors('gist_heat', 'red blue'.split(), 'blue_heat')
+switch_colormap_colors('gist_heat', 'red green blue'.split(), 'green2_heat')
+switch_colormap_colors('gist_heat', 'red blue green'.split(), 'blue2_heat')
+switch_colormap_colors('gist_heat', 'green blue'.split(), 'red2_heat')
+
+# explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
+
 # MAYBE-TODO add other nice colormaps, from elsewhere or mine:
 #  - https://www.mathworks.com/matlabcentral/fileexchange/26026
-
 
 ################## OLD FUNCTIONS, moved from general_utilities.py
 
@@ -248,8 +282,7 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
 
 
 ### Convert data into "linlog" scale for plotting (linear for some small range around 0, log after that)
-# Note: there used to be an old in-progress implementation of this here, called convert_data_to_linlog, but I removed it on 2012-05-30. 
-# The right thing to do is use the "symlog" scale in xscale/yscale, with the appropriate linthreshx/linthreshy (also allows negative values):
+# NOTE: there used to be an old in-progress implementation of this here, called convert_data_to_linlog, but I removed it on 2012-05-30 -  the right thing to do is use the "symlog" scale in xscale/yscale, with the appropriate linthreshx/linthreshy (also allows negative values):
 # - http://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
 # - http://matplotlib.sourceforge.net/examples/pylab_examples/symlog_demo.html
 
