@@ -244,14 +244,39 @@ def switch_colormap_colors(source_cmap_name, color_cycle, new_cmap_name, add_rev
         new_cmap_data[to_color] = source_cmap_data[from_color]
     add_colormap_to_matplotlib(new_cmap_data, new_cmap_name, add_reverse_too)
 
-# make all the different-color variants of the gist_heat colormap (or just some of them if some are commented out)
-switch_colormap_colors('gist_heat', 'red green'.split(), 'green_heat')
-switch_colormap_colors('gist_heat', 'red blue'.split(), 'blue_heat')
-switch_colormap_colors('gist_heat', 'red green blue'.split(), 'green2_heat')
-switch_colormap_colors('gist_heat', 'red blue green'.split(), 'blue2_heat')
-switch_colormap_colors('gist_heat', 'green blue'.split(), 'red2_heat')
+# Make all the different-color variants of the gist_heat colormap (or just some of them if some are commented out)
+switch_colormap_colors('gist_heat', 'red green'.split(), 'wp_GnYl_heat')
+switch_colormap_colors('gist_heat', 'red blue'.split(), 'wp_BuCy_heat')
+switch_colormap_colors('gist_heat', 'red green blue'.split(), 'wp_GnCy_heat')
+switch_colormap_colors('gist_heat', 'red blue green'.split(), 'wp_BuPu_heat')
+switch_colormap_colors('gist_heat', 'green blue'.split(), 'wp_RdPu_heat')
 
-# explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
+# Making other colormap variants based on gist_heat - single-tone ones this time, but similar otherwise.
+gist_heat = mplt.cm.datad['gist_heat']
+gh_red = gist_heat['red']
+gh_green = gist_heat['green']
+gh_blue = gist_heat['blue']
+add_colormap_to_matplotlib({'red': gh_blue, 'green': gh_red, 'blue': gh_blue}, 'wp_green1_heat')
+add_colormap_to_matplotlib({'red': gh_blue, 'green': gh_red, 'blue': gh_red}, 'wp_teal1_heat')
+add_colormap_to_matplotlib({'red': gh_green, 'green': gh_red, 'blue': gh_green}, 'wp_green2_heat')
+add_colormap_to_matplotlib({'red': gh_green, 'green': gh_red, 'blue': gh_red}, 'wp_teal2_heat')
+
+# Getting a bit more complicated by taking fractions of the values (I have to admit I don't quite understand how it works)
+# Notes: try plotting gh_red, gh_green and gh_blue in the -0.1 to 1.1 range... I THINK what's going on is that only x in the 0-1 range are considered, and that values below 0 count as 0, and values above 1 count as 1.  000 is black, 111 is white.  So:
+# - to make colors lighter, keep the value at 1 the same but raise the values for lower x; 
+# - to make colors darker straightforwardly, keep the value at 0 the same but lower the values for higher x. 
+# - to make colors "greyer", so that they can get "darker" but still start at black and end at white, I basically want to add a greyscale gradient to all colors, I think...  Anyway, those are just based on vague ideas and trial-and-error:
+add_colormap_to_matplotlib({'red': gh_blue, 'green': lambda x: x, 'blue': gh_blue}, 'wp_green3_heat')
+add_colormap_to_matplotlib({'red': gh_green, 'green': lambda x: x, 'blue': gh_blue}, 'wp_GnYl2_heat')
+add_colormap_to_matplotlib({'red': gh_blue, 'green': lambda x: x, 'blue': lambda x: x}, 'wp_teal3_heat')
+# teal4 is basically an average between green3 and teal3:
+#  (the last lambda is basically "lambda x: (min(0,gh_green(x)) + x)/2", but in a way that works if x is a numpy array)
+#  (might be better to use power functions instead of all those segmented lines, by the way... gh_green is about x**3, gh_blue about x**7.)
+add_colormap_to_matplotlib({'red': gh_blue, 'green': lambda x: x, 'blue': lambda x: (numpy.int8(gh_blue(x)>0)*gh_blue(x) + x)/2}, 'wp_teal4_heat')
+# MAYBE-TODO all these functions are linear anyway, so I think I could pretty well emulate this with LinearSegmentedColormap and it'd be easier...
+
+# Explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
+# Another link on modifying colormaps: http://www.scipy.org/Cookbook/Matplotlib/ColormapTransformations
 
 # MAYBE-TODO add other nice colormaps, from elsewhere or mine:
 #  - https://www.mathworks.com/matlabcentral/fileexchange/26026
