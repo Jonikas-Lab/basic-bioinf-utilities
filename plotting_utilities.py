@@ -261,6 +261,9 @@ add_colormap_to_matplotlib({'red': gh_blue, 'green': gh_red, 'blue': gh_red}, 'w
 add_colormap_to_matplotlib({'red': gh_green, 'green': gh_red, 'blue': gh_green}, 'wp_green2_heat')
 add_colormap_to_matplotlib({'red': gh_green, 'green': gh_red, 'blue': gh_red}, 'wp_teal2_heat')
 
+# Explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
+# Another link on modifying colormaps: http://www.scipy.org/Cookbook/Matplotlib/ColormapTransformations
+
 # Getting a bit more complicated by taking fractions of the values (I have to admit I don't quite understand how it works)
 # Notes: try plotting gh_red, gh_green and gh_blue in the -0.1 to 1.1 range... I THINK what's going on is that only x in the 0-1 range are considered, and that values below 0 count as 0, and values above 1 count as 1.  000 is black, 111 is white.  So:
 # - to make colors lighter, keep the value at 1 the same but raise the values for lower x; 
@@ -275,8 +278,45 @@ add_colormap_to_matplotlib({'red': gh_blue, 'green': lambda x: x, 'blue': lambda
 add_colormap_to_matplotlib({'red': gh_blue, 'green': lambda x: x, 'blue': lambda x: (numpy.int8(gh_blue(x)>0)*gh_blue(x) + x)/2}, 'wp_teal4_heat')
 # MAYBE-TODO all these functions are linear anyway, so I think I could pretty well emulate this with LinearSegmentedColormap and it'd be easier...
 
-# Explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
-# Another link on modifying colormaps: http://www.scipy.org/Cookbook/Matplotlib/ColormapTransformations
+def transform_colormap_indices(source_cmap_name, start, end, new_cmap_name, add_reverse_too=True):
+    """ Make a colormap that's just the slice of source_cmap_name between start and end; save it as new_cmap_name.
+
+    NOT PERFECT: currently the nearest indices outside the chosen range will just get moved to start/end positions without scaling!
+
+    This will only work if the values in the source cmap color dict are (position, color1, color2) tuples, not functions!
+    """
+    cm = matplotlib.cm
+    if not 0 <= start < end <= 1:
+        raise ValueError("Start/end must satisfy 0 <= start < end <= 1! %s, %s are bad."%(start, end))
+    source_cmap_data = dict(cm.datad[source_cmap_name])
+    for val in source_cmap_data.values():
+        try:                len(val)
+        except TypeError:   
+            raise ValueError("Source_cmap values must be (position, color, color) lists! Found %s instead."%val)
+    # make new colormap, transforming all positions 
+    new_cmap_data = {}
+    for key, pos_color_list in source_cmap_data.items():
+        curr_data = []
+        for position, color1, color2 in pos_color_list:
+            new_position = min(max(0, position-start) / (end-start), 1)
+            curr_data.append((new_position, color1, color2))
+            # TODO this is wrong - I need to scale the indices properly (letting them go below 0 and above 1), then remove the unneeded ones, and scale the COLOR VALUES in the nearest outside ones instead of just shifting them, since that squishes the edge colormap! Like, if I end up with (-.5, 0, 0) and (.5, 1, 1), the first should change into (0, .5, .5), NOT (0, 0, 0) like currently.
+        # this may have resulted in multiple positions of 0 or 1 - get rid of those
+        N_zeros = len([1 for pos,_,_ in curr_data if pos==0])
+        if N_zeros>1:   del curr_data[:N_zeros-1]
+        N_ones = len([1 for pos,_,_ in curr_data if pos==1])
+        if N_ones>1:    del curr_data[-N_ones+1:]
+        # make sure the result is sane, add to new_cmap_data
+        assert curr_data[0][0] == 0
+        assert curr_data[-1][0] == 1
+        new_cmap_data[key] = curr_data
+    # make a new copy of the source cmap data for the new cmap (so that colors not in color_cycle stay the same).
+    add_colormap_to_matplotlib(new_cmap_data, new_cmap_name, add_reverse_too)
+
+### Making different versions of the jet colormap, starting with lighter blue and ending with medium red instead of dark red
+# First just take the middle and remove the sides: I want something that starts around 1/7 of jet, and ends at about 10/11.
+transform_colormap_indices('jet', 1/7, 9.5/11, 'wp_light_jet1')
+transform_colormap_indices('jet', 4/10.5, 9.5/11, 'wp_light_jet2')
 
 # MAYBE-TODO add other nice colormaps, from elsewhere or mine:
 #  - https://www.mathworks.com/matlabcentral/fileexchange/26026
