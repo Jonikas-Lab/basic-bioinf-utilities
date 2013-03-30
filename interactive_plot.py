@@ -148,10 +148,13 @@ def highlight_new_mutants(axes, x_dataset_name, y_dataset_name, mutants):
         ### make it highlight the dot to make sure it's the right ones!
         # MAYBE-TODO instead of putting highlights over existing mutants, actually change the dot colors in the plot?
         # draw new highlights; save them so they can be removed later
-        circles = axes.plot([m.by_dataset[x_dataset_name].total_read_count for m in mutants], 
-                            [m.by_dataset[y_dataset_name].total_read_count for m in mutants],
-                            'o', markersize=6, markeredgewidth=2, markeredgecolor='red', markerfacecolor='none')
-        CURRENT_HIGHLIGHTS = circles
+        if len(mutants):
+            circles = axes.plot([m.by_dataset[x_dataset_name].total_read_count for m in mutants], 
+                                [m.by_dataset[y_dataset_name].total_read_count for m in mutants],
+                                'o', markersize=6, markeredgewidth=2, markeredgecolor='red', markerfacecolor='none')
+            CURRENT_HIGHLIGHTS = circles
+        else:
+            CURRENT_HIGHLIGHTS = []
 
 
 def on_click(event, fig, axes, scatterplot, x_dataset_name, y_dataset_name, joint_mutants, SELECTED_DATASET):
@@ -186,7 +189,7 @@ def on_rectangle_select(start_event, end_event, fig, axes, scatterplot, x_datase
     """ Rectangle selection behavior - see module docstring for detail. """
     x_low, x_high = sorted((start_event.xdata, end_event.xdata))
     y_low, y_high = sorted((start_event.ydata, end_event.ydata))
-    # TODO this is extremely slow and weird and often doesn't work!!  Not sure why...  Interference between click and RectangleSelect?
+    # TODO this is extremely slow and weird and often doesn't work!!  Not sure why...  Interference between click and RectangleSelect?  Test it, read the docs!  I could make a keybinding switch between the two...  
 
     ### find the mutants inside the rectangle (I think the rectangle won't work outside the plot):
     mutants_in_rectangle = find_mutants_in_rectangle(x_low, y_low, x_high, y_high, x_dataset_name, y_dataset_name, joint_mutants)
@@ -262,18 +265,21 @@ def connect_to_mutant_scatterplot(fig, axes, scatterplot, x_dataset_name, y_data
 
 
 def disconnect_all(fig):
-    """ Disconnect all connections. """
+    """ Disconnect all connections; remove current mutant highlights. """
+    # remove all highlights - can pass None for axes and dataset names, since they're not needed, and [] for new highlighted mutants
+    highlight_new_mutants(None, None, None, mutants=[])
+    # disconnect all current connection IDs
     global CURRENT_CONNECTIONS
     for connection_ID in CURRENT_CONNECTIONS:
         fig.canvas.mpl_disconnect(connection_ID)
     CURRENT_CONNECTIONS = []
     # That doesn't seem to WORK...  LATER-TODO fix?
-    # Alternative version, temporary, to just disconnect everything:
+    # Alternative version, temporary, to just disconnect all connection IDs (seems to work):
     for x in range(10000): fig.canvas.mpl_disconnect(x)
 
 
 # TODO write a "if __name__=='__main__' section for this to work as a shell-script that takes the two mutant files and shows the plot with all the interactive features, printing data to the terminal and saving the selected mutants to a new file if desired.  It'd be good to be able to email people a script they can run and do this interactive thing themselves!
 
-# Does this interactive stuff even work on a Mac?  TODO check!  Maybe try it in ipython notebook (have to use the other pylab setting, not inline) - that's what the guy at PyData used, I think.
+# Does this interactive stuff even work on a Mac?  TODO check!  Maybe try it in ipython notebook (have to use the other pylab setting, not inline) - that's what the guy at PyData used, I think.  That would be harder to put in a standalone script, though...
 
 # It would still require people to have python installed, but they mostly do.  Unless I did py2exe or something...  MAYBE-TODO look into that...
