@@ -418,20 +418,22 @@ def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True,
     return run_command_get_output(command, shell)
 
 
-def run_command_print_info_output(command, LOGFILE=None, printing=True, shell=True, program_name=None, add_newlines=0):
+def run_command_print_info_output(command, LOGFILE=None, printing_level=2, shell=True, program_name=None, add_newlines=0):
     """ Run shell command; write command info line and stdout+stderr to LOGFILE and/or stdout.
 
     The shell arg to subprocess.Popen is given by shell; LOGFILE should be an open file object; 
     program_name is only used for printing, and the first word of the command will be used by default.
+    printing_level 1 means print only the command to stdout; 2 means print command and output.
     The command's return code is returned.
     """
     header_line = "### Running %s: %s\n"%((program_name or command.split(' ')[0]), command) 
+    if printing_level>0:        print header_line
     stdout, stderr, retcode = run_command_get_output(command, shell)
     command_output = stdout + stderr
     if not command_output.startswith('\n'):  header_line += '\n'
-    full_output = header_line + command_output + '\n'*add_newlines
-    if LOGFILE is not None:     LOGFILE.write(full_output)
-    if printing:                print full_output
+    full_output = command_output + '\n'*add_newlines
+    if printing_level>1:        print full_output
+    if LOGFILE is not None:     LOGFILE.write(header_line + full_output)
     return retcode
 
 
