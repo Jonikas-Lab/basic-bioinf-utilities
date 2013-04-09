@@ -453,7 +453,7 @@ def int_or_float(x):
 
 
 def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g', 
-                          NA_for_zero_division=True, exception_for_100='default', insert_word=None):
+                          NA_for_zero_division=True, exception_for_100='default', insert_word=None, words_for_percentages=None):
     """ Return a string containing val and val as percentage of each total: 1,[2,3] -> "1 (50%, 33%)".
 
     If fractions_not_percentages=True, 1,[2,3] -> "1 (0.5, 0.33)" instead.
@@ -462,6 +462,8 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     If exception_for_100 is True, 100 is formatted as '100' rather than '1e+02' even if precision is 2.
     If exception_for_100 is 'default', it's True for percentages with '%.2g' format but False otherwise and for fractions.
     If insert_word is given, return "x WORD (y%)" instead of just "x (y%)"
+    Words_for_percentages must be a list of strings same length as totals (or None):
+     if given, return "x (y% WORD1, z% WORD2)" instead of just "x (y%, z%)"
     """ 
     if exception_for_100=='default': 
         exception_for_100 = True if (not fractions_not_percentages and percentage_format_str in ['%.2g','%.2f']) else False
@@ -472,8 +474,12 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
     if NA_for_zero_division:    full_percentage_getter = lambda x,total: 'N/A' if total==0 else percentage_getter(x,total)
     else:                       full_percentage_getter = percentage_getter
-    return "%s%s (%s)"%(val, '' if insert_word is None else ' '+insert_word, 
-                        ', '.join([full_percentage_getter(val,total) for total in totals]))
+    string_for_total = "%s%s"%(val, '' if insert_word is None else ' '+insert_word)
+    if words_for_percentages is None:   words_for_percentages = [None for _ in totals]
+    words_for_percentages = ['' if x is None else ' '+x for x in words_for_percentages]
+    strings_for_percentages = ["%s%s"%(full_percentage_getter(val,total), word) 
+                               for (total, word) in zip(totals, words_for_percentages)]
+    return "%s (%s)"%(string_for_total, ', '.join(strings_for_percentages))
 
 
 ### Get rid of NaN/inf numbers singly or in lists/dicts, replace by input
@@ -969,6 +975,9 @@ class Testing_everything(unittest.TestCase):
         # testing insert_word option
         assert value_and_percentages(1, [2], False, insert_word='A') == "1 A (50%)"
         assert value_and_percentages(1, [2], True, insert_word='turtle(s)') == "1 turtle(s) (0.5)"
+        # testing words_for_percentages option
+        assert value_and_percentages(1, [2,4], False, words_for_percentages='A B'.split()) == "1 (50% A, 25% B)"
+        assert value_and_percentages(1, [2,4], True, words_for_percentages=['of this', 'of that']) == "1 (0.5 of this, 0.25 of that)"
 
     def test__find_local_maxima_by_width(self):
         # basic functionality - find the local maximum
