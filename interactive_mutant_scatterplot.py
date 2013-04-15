@@ -13,14 +13,14 @@ Current interactive behavior:
     > or + increases the opacity of all the dots, and < or - decreases it
     U or u removes all mutants from the selected set
     I or i prints information for all mutants in the selected set
- * the selected mutant dataset is available as interactive_plot.SELECTED_DATASET
+ * the selected mutant dataset is available as interactive_mutant_scatterplot.SELECTED_DATASET
 More behavior may be added
 
  -- Weronika Patena, Jonikas Lab, 2013
 
 Example usage (in python interactive shell, on real mutant data):
 
-    >>> import interactive_plot
+    >>> import interactive_mutant_scatterplot
     >>> import mutant_analysis_classes
     >>> datafile1 = '/home/weronika/experiments/mutant_pool_screens/1301_Mia-lipid-screen1_basic-analysis/2_mutants/5prime_no-merging/HL1_5prime_mutants_no-merging.pickle'
     >>> datafile2 = '/home/weronika/experiments/mutant_pool_screens/1301_Mia-lipid-screen1_basic-analysis/2_mutants/5prime_no-merging/LL1_5prime_mutants_no-merging.pickle'
@@ -41,10 +41,10 @@ Example usage (in python interactive shell, on real mutant data):
     >>> mplt.xscale('symlog')
     >>> mplt.ylim(-1, 10000)
     >>> mplt.xlim(-1, 10000)
-    >>> reload(interactive_plot)
-    >>> interactive_plot.connect_to_mutant_scatterplot(fig, axes, plot, 'HL', 'LL', both_data)
+    >>> reload(interactive_mutant_scatterplot)
+    >>> interactive_mutant_scatterplot.connect_to_mutant_scatterplot(fig, axes, plot, 'HL', 'LL', both_data)
 
-    >>> interactive_plot.disconnect_all(fig)
+    >>> interactive_mutant_scatterplot.disconnect_all(fig)
     >>> mplt.close()
 """
 # LATER-TODO generalize this to work with other plot types?
