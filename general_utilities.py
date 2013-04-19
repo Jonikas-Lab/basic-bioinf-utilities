@@ -28,6 +28,15 @@ def compare_lists_unordered(list1,list2):
         if x not in list2:      return False
     return True
 
+def add_to_dict_no_replacement(dictionary, key, new_val, key_name='key', val_name='value', raise_exception=True, print_error=True):
+    """ If key isn't in dictionary yet, add it with val; if already has a different value, raise exception or print error message."""
+    if key in dictionary and dictionary[key] != new_val:
+        error_msg = "Attempting to change existing %s for %s %s! (old %s, new %s)"%(val_name,key_name, key, dictionary[key], new_val)
+        if raise_exception:   raise ValueError(error_msg)
+        if print_error:       print "ERROR: %s. NOT CHANGING the dictionary."%error_msg
+    else:
+        dictionary[key] = new_val
+
 def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
     """ Given a list of dictionaries, return a similar new list of dicts with only the keys shared by all the dictionaries.
     Caution: returns a LIST OF DICTS, NOT a new dictionary that contains only the overlap! Easy to get confused."""
@@ -725,6 +734,24 @@ class Testing_everything(unittest.TestCase):
                 assert compare_lists_unordered(input_list[:-1], permuted_list) == False
             for permuted_list in permutations(input_list, len(input_list)-1):
                 assert compare_lists_unordered(input_list, permuted_list) == False
+
+    def test__add_to_dict_no_replacement(self):
+        # you can add new key:value pairs to dictionary, or re-add previous ones if you don't change the value (no-op)
+        d = {}
+        add_to_dict_no_replacement(d, 1, 2)
+        assert d=={1:2}
+        add_to_dict_no_replacement(d, 1, 2)
+        assert d=={1:2}
+        add_to_dict_no_replacement(d, 2, 2)
+        assert d=={1:2, 2:2}
+        # if you try changing the value for an existing key, you either get an exception, or it just doesn't work 
+        #  (with an optional printed error message), depending on raise_exception argument.
+        self.assertRaises(ValueError, add_to_dict_no_replacement, d, 1, 300, raise_exception=True)
+        assert d=={1:2, 2:2}
+        add_to_dict_no_replacement(d, 1, 300, raise_exception=False, print_error=False)
+        assert d=={1:2, 2:2}
+        # MAYBE-TODO check that the printed error message is correct?
+
 
     def test__reduce_dicts_to_overlaps(self):
         d1 = {1:1}
