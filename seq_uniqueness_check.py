@@ -15,7 +15,7 @@ import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from seq_basic_utilities import check_fasta_fastq_format, reverse_complement
+from basic_seq_utilities import check_fasta_fastq_format, reverse_complement
 
 
 def define_option_parser():

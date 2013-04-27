@@ -8,7 +8,7 @@
 import unittest
 
 
-## NOTE: for fasta/fastq (raw data) utilities see seq_basic_utilities.py
+## NOTE: for fasta/fastq (raw data) utilities see basic_seq_utilities.py
 
 
 ################## aligned data utilities ################## 

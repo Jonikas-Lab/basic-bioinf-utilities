@@ -11,7 +11,7 @@ import unittest
 # other packages
 from Bio import SeqIO
 # my modules
-from seq_basic_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
+from basic_seq_utilities import get_seq_count_from_collapsed_header, check_fasta_fastq_format
 from general_utilities import add_dicts_of_ints
 
 
@@ -20,7 +20,7 @@ def seq_count_and_lengths(seq_iterator, count_only=False, input_collapsed_to_uni
 
     Sequence length is determined by len(seq) - will fail if len() doesn't work on the elements of seq_iterator. 
     If input_collapsed_to_unique, decode the read count from seq header instead of counting each seq as 1, 
-     using seq_basic_utilities.get_seq_count_from_collapsed_header (see docstring for that).
+     using basic_seq_utilities.get_seq_count_from_collapsed_header (see docstring for that).
     """
     total_count = 0
     seqlen_counter = defaultdict(lambda: 0)
