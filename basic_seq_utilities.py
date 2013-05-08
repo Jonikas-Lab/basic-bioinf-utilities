@@ -668,9 +668,18 @@ class Testing_everything(unittest.TestCase):
 
 
     def test__find_seq_between(self):
-        pass
-    # TODO implement!
-
+        # basic
+        for input_seq in ['TTTAGAGCCC', 'CCTTTAGAGCCCTT', 'AAAGAGAGATTTAGAGCCCAGAGAGAGGGGNNNNNN']:
+            assert find_seq_between(input_seq, 'TTT', 'CCC', exclusive=True)  == 'AGAG'
+            assert find_seq_between(input_seq, 'TTT', 'CCC', exclusive=False) == 'TTTAGAGCCC'
+        # if the edge seqs qre not in input_seq, or are in the wrong order, return ''
+        for input_seq in ['TTAGAGCCC', 'TTTAGAGCC', 'TTAGAGCC', 'AGAG', 'CCCAGAGTTT', 'CCCTTT']:
+            assert find_seq_between(input_seq, 'TTT', 'CCC', exclusive=True)  == ''
+            assert find_seq_between(input_seq, 'TTT', 'CCC', exclusive=False) == ''
+        # if there are multiple occurrences of the edge seqs, use the first one
+        assert find_seq_between('TTTAATTTAAAACCC', 'TTT', 'CCC', exclusive=True)  == 'AATTTAAAA'
+        assert find_seq_between('TTTAATTTAAAACCCAACCC', 'TTT', 'CCC', exclusive=True)  == 'AATTTAAAA'
+        assert find_seq_between('TTTAAAACCCAACCC', 'TTT', 'CCC', exclusive=True)  == 'AAAA'
 
     def test__generate_seq_slices(self):
         # arguments to generate_seq_slices are (seq, slice_len, step);
