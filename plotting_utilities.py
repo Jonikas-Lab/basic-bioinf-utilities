@@ -150,7 +150,20 @@ def remove_half_frame(ax=None):
 
 ################################ OTHER ADDITIONS ###################################
 
-######### colormaps
+######### color lists
+# Trying to make lists of reasonably distinct colors, for various color numbers
+
+# this is the html basic 16-color set from https://en.wikipedia.org/wiki/Web_colors#HTML_color_names, with some changes: different order, with no white, with yellow changed to gold because yellow is too pale, blue changed to dodgerblue because blue is too dark.
+colors_15a = "black silver gray dodgerblue red lime gold aqua fuchsia maroon navy green olive teal purple".split()
+
+# sets I just made up, trying to get them to be easy to distinguish
+colors_7a = 'black blue darkturquoise forestgreen darkorange mediumorchid red'.split()
+colors_10a = 'black gray blue darkturquoise forestgreen darkgoldenrod saddlebrown darkorange red mediumorchid'.split()
+colors_20a = "green springgreen yellowgreen darkturquoise teal skyblue dodgerblue blue navy coral red darkred plum magenta darkviolet darkorange darkgoldenrod darkgray black dimgray".split()
+
+# MAYBE-TODO write functions to sort color-lists by hue (rainbow) and by brightness?
+
+######### colormaps (continuous color ranges to use for heatmaps)
 
 def all_colormaps_image(save_as='~/computers_and_programming/colormaps_all_matplotlib.png', close=False):
     """ Make an image with all the colormaps shown; optionally save to file. """
