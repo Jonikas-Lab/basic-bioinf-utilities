@@ -25,7 +25,7 @@ def print_seq(line):
         (header,seq) = line
         print ">%s\n%s"%(header,seq)
 
-def parse_fasta(input):
+def parse_fasta(input, not_standard_nucleotides=False):
     """ Usage: for (header,seq) in parse_fasta(input): <do stuff>. Input can be a filename or generator. """
     header,seq = '',''
     # If the input is a filename, open it first
@@ -46,8 +46,10 @@ def parse_fasta(input):
             # exit with an error if the file doesn't parse right! (illegal seq characters or a no-header sequence)
             #   (maketrans('','') is an empty table - all I'm doing here is using the second argument to delete characters.
             #   in python 2.6+ I can use None instead for the same effect, but this should make it run in 2.5.)
-            if line.strip().upper().translate(maketrans('',''),'ACTGURYKMSWBDHVN .-*'): 
+            if not not_standard_nucleotides and line.strip().upper().translate(maketrans('',''),'ACTGURYKMSWBDHVN .-*'): 
                 sys.exit("Error: invalid sequence line! %s"%line)
+                # TODO shouldn't really hard-code the allowed bases...
+                # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?
             if not header: 
                 sys.exit("Error: Found a sequence line without a header first! %s"%line)
     if type(input)==file:    input.close()
