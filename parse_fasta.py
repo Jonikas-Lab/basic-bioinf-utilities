@@ -47,11 +47,11 @@ def parse_fasta(input, not_standard_nucleotides=False):
             #   (maketrans('','') is an empty table - all I'm doing here is using the second argument to delete characters.
             #   in python 2.6+ I can use None instead for the same effect, but this should make it run in 2.5.)
             if not not_standard_nucleotides and line.strip().upper().translate(maketrans('',''),'ACTGURYKMSWBDHVN .-*'): 
-                sys.exit("Error: invalid sequence line! %s"%line)
+                raise Exception("Error: invalid sequence line! %s"%line)
                 # TODO shouldn't really hard-code the allowed bases...
                 # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?
             if not header: 
-                sys.exit("Error: Found a sequence line without a header first! %s"%line)
+                raise Exception("Error: Found a sequence line without a header first! %s"%line)
     if type(input)==file:    input.close()
     # also return the last entry, if it's non-empty!
     if header:
