@@ -127,11 +127,24 @@ def color_plot_frame(ax=None, color='grey', color_frame=True, color_ticks=True, 
 
 # more on modifying frames here: http://matplotlib.org/examples/pylab_examples/spine_placement_demo.html
 
+def remove_frame_and_background(ax=None):
+    """ Remove plot frame, including x/y ticks and ticklabels. """
+    if ax is None:  ax = mplt.gca()
+    else:           mplt.sca(ax)
+    # this removes the frame, but also the background
+    ax.set_frame_on(False)
+    mplt.xticks([], [])
+    mplt.yticks([], [])
+    mplt.draw()
+
 def remove_frame(ax=None):
     """ Remove plot frame, including x/y ticks and ticklabels. """
     if ax is None:  ax = mplt.gca()
     else:           mplt.sca(ax)
-    ax.set_frame_on(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
     mplt.xticks([], [])
     mplt.yticks([], [])
     mplt.draw()
