@@ -39,11 +39,11 @@ def _format_lengths(seqlen_dict, include_zeros=False, verbosity=1):
     if include_zeros:   lengths = range(min(lengths),max(lengths)+1)
     else:               lengths.sort()
     if verbosity>0:     
+        output_lines.append("Total %s seqs\n"%sum(seqlen_dict.values()))
+    if verbosity>0:     
         output_lines.append("length\tseq count\n")
     for l in lengths:
         output_lines.append("%s\t%s\n"%(l,seqlen_dict[l]))
-    if verbosity>0:     
-        output_lines.append("Total %s seqs\n"%sum(seqlen_dict.values()))
     return output_lines
 
 
