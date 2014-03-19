@@ -42,6 +42,9 @@ FASTQ_EXTENSIONS = "fq fastq"
 # Can be used like this:  "for read in SeqIO.parse(INFILE, "fastq-illumina"):"
 FASTQ_QUALITY_ENCODINGS = ["fastq-sanger", "fastq-illumina", "fastq-solexa"]
 
+# which option to pass to Fastx Toolkit for which encoding:
+FASTQ_ENCODINGS_FASTX_TOOLKIT = {'auto': '', 'sanger': '-Q33', 'illumina': '-Q64'}
+
 # colors to use for different chromosome types, by default
 CHROMOSOME_TYPE_COLORS = { 'chromosome': 'black', 'scaffold': 'blue', 'chloroplast': 'green', 'mitochondrial': 'red', 
                           'cassette': '0.6'}
