@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """
 Various plotting utilities I wrote (usually for matplotlib) - see docstring for each function for what it does.
  -- Weronika Patena, 2010-2012

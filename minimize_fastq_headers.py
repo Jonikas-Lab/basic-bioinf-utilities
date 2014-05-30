@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 """ 
 Remove duplicate information from FASTQ file headers (read names):
 1) completely remove the header of the quality lines, since it's identical to the header of the sequence lines

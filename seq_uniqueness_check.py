@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """
 Given any number of fasta or fastq files, check if any of the sequences repeat (in one file or between files); depending on options, also check whether any sequence is a subsequence of any other, and whether any reverse-complement sequence is identical to or a subsequence of any of the other sequences.

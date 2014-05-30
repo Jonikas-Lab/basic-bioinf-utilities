@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """
 Parse/reformat a fasta file
  --Weronika Patena, nov2008

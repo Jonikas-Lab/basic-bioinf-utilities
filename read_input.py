@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """
 Read input using various methods (from raw or file arguments or stdin)
 """

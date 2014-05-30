@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """
 Given any number of fasta or fastq files, print the N most common sequences in it (either full sequences, or Xbp prefixes) along with their counts as raw numbers and as percentages of the total count.  Optionally only print them if the percentage of the total count exceeds a minimum.

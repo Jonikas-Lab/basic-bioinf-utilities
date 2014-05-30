@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """
 Various testing utilities I wrote (for unit tests, functional tests etc) - see docstring for each function/class for what it does.

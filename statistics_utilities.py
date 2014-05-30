@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """
 Various statistical convenience functions I wrote - see docstring for each function for what it does.

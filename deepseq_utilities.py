@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """ Various basic deepseq-related utilities I wrote - see separate function docstrings.  For importing only.
  --Weronika Patena, 2011

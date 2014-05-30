@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 """ Hooking up interactive behavior to mutant readcount scatterplots!
 Run connect_to_mutant_scatterplot to add interactive behavior an existing scatterplot, given the mutant dataset. 

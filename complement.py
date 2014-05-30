@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """
 This program takes one DNA sequence as an argument, prints the complement.
 Weronika Patena, nov2008

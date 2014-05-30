@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """
 Given one fasta or fastq file, split the sequences by length, and output a folder matching the input filename (no extension), containing files named <original_filename>_20bp.fa etc.
 The file type is detected automatically, using the HTSeq library FastaReader/FastqReader methods.

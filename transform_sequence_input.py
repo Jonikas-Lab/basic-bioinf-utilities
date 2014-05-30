@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 
 ### Various help functions for sequence and text processing
 ### Weronika Patena, nov2008
