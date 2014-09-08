@@ -44,6 +44,10 @@ CIGAR_TYPES_INTRON = ['N']     # 'N' is for introns, but we shouldn't be paying 
 CIGAR_TYPES_UNKNOWN = ['M']
 # MAYBE-TODO HTSeq doesn't appear aware of the = and X operations...  http://www-huber.embl.de/users/anders/HTSeq/doc/alignments.html#HTSeq.CigarOperation  - I emailed the author about it, no response
 
+class DeepseqError(Exception):
+    """ Exception in this module; no special behavior."""
+    pass
+
 ### Getting mutation counts from various SAM alignment format fields, as read by HTSeq
 
 def _get_HTSeq_optional_field_either_version(val_or_tuple):
@@ -89,11 +93,13 @@ def check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as='unkn
     return mutations
 
 
-def check_mutation_count_by_optional_NM_field(HTSeq_alignment):
-    """ Return number of mutations in HTSeq_alignment, based on optional NM field; -1 if unknown (NM field missing)."""
+def check_mutation_count_by_optional_NM_field(HTSeq_alignment, negative_if_absent=True):
+    """ Return #errors in HTSeq_alignment, based on optional NM field; -1 or exception if field missing."""
     # for unalign reads NM field is missing - returns -1
-    try:                return _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field('NM'))
-    except KeyError:    return -1
+    try:                        return _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field('NM'))
+    except KeyError:    
+        if negative_if_absent:  return -1
+        else:                   raise DeepseqError("Optional NM field missing in read %s - can't determine #errors!"%HTSeq_alignment.read.name)
 
 
 def check_mutation_count_by_optional_MD_field(HTSeq_alignment):
@@ -222,7 +228,8 @@ class Testing(unittest.TestCase):
     def test__check_mutation_count_by_optional_NM_field(self):
         """ the tested function should return -1 if no NM field, otherwise return value of NM field. """
         fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment()
-        assert check_mutation_count_by_optional_NM_field(fake_alignment) == -1
+        assert check_mutation_count_by_optional_NM_field(fake_alignment, negative_if_absent=True) == -1
+        self.assertRaises(DeepseqError, check_mutation_count_by_optional_NM_field, fake_alignment, negative_if_absent=False)
         for x in range(10):
             fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(optional_field_data={'NM':x})
             assert check_mutation_count_by_optional_NM_field(fake_alignment) == x
