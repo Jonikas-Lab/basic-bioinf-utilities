@@ -55,6 +55,9 @@ def _get_HTSeq_optional_field_either_version(val_or_tuple):
     if isinstance(val_or_tuple, tuple): return val_or_tuple[1]
     else:                               return val_or_tuple
 
+def get_HTSeq_optional_field(HTSeq_alignment, field_name):
+    """ Return value of optional field (like NM, XM, etc). """
+    return _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field(field_name))
 
 def check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as='unknown', ignore_introns=False):
     """ Return number of mutations in HTSeq_alignment, based on CIGAR string; -1 if unknown ('M') by default.
@@ -96,7 +99,7 @@ def check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as='unkn
 def check_mutation_count_by_optional_NM_field(HTSeq_alignment, negative_if_absent=True):
     """ Return #errors in HTSeq_alignment, based on optional NM field; -1 or exception if field missing."""
     # for unalign reads NM field is missing - returns -1
-    try:                        return _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field('NM'))
+    try:                        return get_HTSeq_optional_field(HTSeq_alignment, 'NM')
     except KeyError:    
         if negative_if_absent:  return -1
         else:                   raise DeepseqError("Optional NM field missing in read %s - can't determine #errors!"%HTSeq_alignment.read.name)
@@ -108,7 +111,7 @@ def check_mutation_count_by_optional_MD_field(HTSeq_alignment):
     #   and sam_MD_field_examples_*.txt files in experiments/reference_data/aligner_format_info
     #       basically a number means matches, a letter means a mismatch to reference (or insertion? is that different?), 
     #       letters preceded by ^ mean deletion from the reference
-    try:                mutation_string = _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field('MD'))
+    try:                mutation_string = get_HTSeq_optional_field(HTSeq_alignment, 'MD')
     except KeyError:    return -1
     # for unalign reads MD field is missing - returns -1
     mutation_letters = [c for c in mutation_string if not (c.isdigit() or c=='^')]
