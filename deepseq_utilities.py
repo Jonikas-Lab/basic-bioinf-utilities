@@ -183,11 +183,9 @@ class Fake_deepseq_objects:
             else:
                 self.aligned = True
                 self.iv = Fake_deepseq_objects.Fake_HTSeq_genomic_pos(*pos)
-                self.optional_field_data = optional_field_data
-                if cigar_string is None:    
-                    self.cigar = None
-                else:                       
-                    self.cigar = [Fake_deepseq_objects.Fake_HTSeq_cigar_op(c) for c in cigar_string]
+            self.optional_field_data = optional_field_data
+            if cigar_string is None:    self.cigar = None
+            else:                       self.cigar = [Fake_deepseq_objects.Fake_HTSeq_cigar_op(c) for c in cigar_string]
 
         def optional_field(self,field):             
             return self.optional_field_data[field]
