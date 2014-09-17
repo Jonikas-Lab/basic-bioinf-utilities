@@ -177,6 +177,8 @@ def remove_half_frame(ax=None):
 colors_15a = "black silver gray dodgerblue red lime gold aqua fuchsia maroon navy green olive teal purple".split()
 
 # sets I just made up, trying to get them to be easy to distinguish
+colors_6a = 'black blue darkturquoise forestgreen mediumorchid red'.split()
+colors_6b = 'blue darkturquoise forestgreen darkorange mediumorchid red'.split()
 colors_7a = 'black blue darkturquoise forestgreen darkorange mediumorchid red'.split()
 colors_10a = 'black gray blue darkturquoise forestgreen darkgoldenrod saddlebrown darkorange red mediumorchid'.split()
 colors_20a = "green springgreen yellowgreen darkturquoise teal skyblue dodgerblue blue navy coral red darkred plum magenta darkviolet darkorange darkgoldenrod darkgray black dimgray".split()
