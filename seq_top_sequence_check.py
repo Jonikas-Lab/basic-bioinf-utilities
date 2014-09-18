@@ -53,9 +53,9 @@ def subsequence_counts(infile_reader, seq_length=None, input_collapsed_to_unique
     seq_counter = defaultdict(lambda: 0)    # a counter with a default value of 0
     for sequence in infile_reader: 
         N_seqs = get_seq_count_from_collapsed_header(sequence.name) if input_collapsed_to_unique else 1
-        # using seq.tostring() to convert Biopython Seq objects to plain strings - Seq objects aren't hashable correctly
-        if seq_length > 0:  subsequence = sequence.seq[0:seq_length].tostring()
-        else:               subsequence = sequence.seq[seq_length:].tostring()
+        # convert Biopython Seq objects to plain strings - Seq objects aren't hashable correctly
+        if seq_length > 0:  subsequence = str(sequence.seq[0:seq_length])
+        else:               subsequence = str(sequence.seq[seq_length:])
         seq_counter[subsequence] += N_seqs
     return dict(seq_counter)
 
