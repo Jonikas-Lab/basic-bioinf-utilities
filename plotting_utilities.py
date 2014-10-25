@@ -12,6 +12,7 @@ import os
 import numpy
 import matplotlib
 import matplotlib.pyplot as mplt
+from matplotlib.font_manager import FontProperties
 
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
