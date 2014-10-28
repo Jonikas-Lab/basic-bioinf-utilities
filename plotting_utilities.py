@@ -79,6 +79,10 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 
 # MAYBE-TODO could make the "if ax is None:  ax = mplt.gca(); else:  mplt.sca(ax)" line into a decorator, since it shows up everywhere
 
+def legend(*args, **kwargs):
+    """ make the legend with medium instead of large font size. """
+    mplt.legend(*args, prop=FontProperties(size='medium'), **kwargs)
+
 def remove_legend(ax=None):
     """ Remove legend for ax or the current axes (detected with gca()). """
     # from Scipy matplotlib cookbook - http://www.scipy.org/Cookbook/Matplotlib/Legend
