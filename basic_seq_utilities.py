@@ -30,6 +30,7 @@ from reverse import reverse
 NORMAL_DNA_BASES = 'ACTG'
 
 SEQ_ENDS = ['5prime','3prime']
+SEQ_ENDS_SHORT = ["5'","3'"]
 SEQ_STRANDS = ['+','-']
 SEQ_DIRECTIONS = ['forward','reverse']
 SEQ_ORIENTATIONS = ['sense','antisense']
