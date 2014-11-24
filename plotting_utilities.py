@@ -17,7 +17,7 @@ from matplotlib.font_manager import FontProperties
 # For useful tricks see ~/computers_and_programming/matplotlib_notes_and_tricks.txt file.
 
 
-def savefig(figname, extensions=None, padding=0.2, dpi=300, dont_check_figname=False):
+def savefig(figname, extensions=None, padding=0.2, dpi=300, dont_check_figname=False, **kwargs):
     """ Save current figure as figname if figname has an extension, or as figname.ext for each extension, with given padding/dpi. 
     
     Extensions can be a list, or a space-separated string that will be split into a list, or None.  If None:
@@ -29,7 +29,7 @@ def savefig(figname, extensions=None, padding=0.2, dpi=300, dont_check_figname=F
     default_extension = 'png'
     try:                    extensions = extensions.split()
     except AttributeError:  pass
-    kwargs = dict(bbox_inches='tight', pad_inches=padding, dpi=dpi)
+    kwargs.update(dict(bbox_inches='tight', pad_inches=padding, dpi=dpi))
     if extensions is not None:
         for extension in extensions:    mplt.savefig('%s.%s'%(figname, extension), **kwargs)
     elif os.path.splitext(figname)[1]:  mplt.savefig(figname, **kwargs)
