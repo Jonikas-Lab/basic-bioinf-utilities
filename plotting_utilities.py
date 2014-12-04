@@ -186,7 +186,10 @@ colors_6a = 'black blue darkturquoise forestgreen mediumorchid red'.split()
 colors_6b = 'blue darkturquoise forestgreen darkorange mediumorchid red'.split()
 colors_7a = 'black blue darkturquoise forestgreen darkorange mediumorchid red'.split()
 colors_10a = 'black gray blue darkturquoise forestgreen darkgoldenrod saddlebrown darkorange red mediumorchid'.split()
+colors_12a = 'black gray blue darkturquoise forestgreen yellowgreen darkgoldenrod darkorange red darkred mediumorchid blueviolet'.split()
 colors_20a = "green springgreen yellowgreen darkturquoise teal skyblue dodgerblue blue navy coral red darkred plum magenta darkviolet darkorange darkgoldenrod darkgray black dimgray".split()
+colors_20b = "black dimgray darkgray navy blue dodgerblue skyblue darkturquoise teal green springgreen yellowgreen darkgoldenrod darkorange coral red darkred magenta plum darkviolet ".split()
+colors_21a = "black dimgray darkgray navy blue dodgerblue skyblue darkturquoise teal green springgreen yellowgreen darkgoldenrod gold darkorange coral red darkred magenta plum darkviolet ".split()
 
 # MAYBE-TODO write functions to sort color-lists by hue (rainbow) and by brightness?
 
