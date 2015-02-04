@@ -90,8 +90,8 @@ def name_seq_generator_from_fasta(fasta_infile):
     from Bio import SeqIO   # Bio is the biopython package
     with open(fasta_infile) as INFILE:
         for record in SeqIO.parse(INFILE, 'fasta'):
-            # record.seq is a biopython Seq object, record.seq.tostring() is a string, which is what we want
-            yield record.name, record.seq.tostring()
+            # record.seq is a biopython Seq object - we want a string
+            yield record.name, str(record.seq)
 
 
 def name_seq_generator_from_fastq(fastq_infile):
