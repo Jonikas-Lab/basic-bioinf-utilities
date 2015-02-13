@@ -38,7 +38,7 @@ def savefig(figname, extensions=None, padding=0.2, dpi=300, dont_check_figname=F
 
 ################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
 
-def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0.7, normalize=False, colors='bgrcmy'):
+def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0.7, normalize=False, colors='bgrcmy', **kwargs):
     """ Plot list_of_sample_category_lists as a stacked bar plot (all categories per sample on top of each other). 
     Return list of plot_bar objects, to use in legend (like this: "mplt.legend(plot_bar_list, name_list)"). 
     """
@@ -48,6 +48,7 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
         raise ValueError("list_of_sample_category_lists and sample_names must be the same length!")
     N_samples = len(list_of_sample_category_lists)
     N_categories = len(list_of_sample_category_lists[0])
+    if 'align' not in kwargs:   kwargs['align'] = 'center'
     if not sample_names:
         sample_names = ['' for _ in range(N_samples)]
     positions = range(N_samples)
@@ -60,11 +61,10 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
             list_of_sample_category_lists[i] = norm_data
     for category_N, color in zip(range(N_categories), itertools.cycle(colors)):
         category_values = [sample_category_list[category_N] for sample_category_list in list_of_sample_category_lists]
-        plot_bars = mplt.bar(positions, category_values, bottom=bar_bottoms, color=color, width=bar_width)
+        plot_bars = mplt.bar(positions, category_values, bottom=bar_bottoms, color=color, width=bar_width, **kwargs)
         bar_bottoms = [x+y for (x,y) in zip(bar_bottoms,category_values)]
         category_bars_for_legend.append(plot_bars[0])
-    mplt.xticks([p + bar_width/2 for p in positions], sample_names)
-    mplt.xlim(-(1-bar_width), mplt.xlim()[1])
+    mplt.xticks(positions, sample_names)
     if normalize:
         mplt.ylim(0,100)
     return category_bars_for_legend
