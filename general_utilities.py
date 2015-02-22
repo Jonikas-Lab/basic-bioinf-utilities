@@ -12,8 +12,15 @@ import unittest
 from collections import defaultdict
 import pickle as Pickle     # rename so I can use pickle as a function name
 import subprocess
+import time
 # other packages
 # my modules
+
+######################################## GENERAL CONVENIENCE STUFF ########################################
+
+def timenow():
+    """ Print the current time as a string. """
+    print time.ctime(time.time())
 
 
 ######################################## STRUCTURES / CLASSES / ETC ########################################
@@ -210,7 +217,6 @@ class keybased_defaultdict(defaultdict):
             return value
 
 ### Useful class mix-ins
-
 
 class FrozenClass(object):
     """ Class that allows prevention of adding new attributes at some point after creation - NOT full immutability.
