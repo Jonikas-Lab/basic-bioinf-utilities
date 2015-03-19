@@ -6,6 +6,7 @@
 
 # basic libraries
 import unittest
+import basic_seq_utilities
 
 
 ## NOTE: for fasta/fastq (raw data) utilities see basic_seq_utilities.py
@@ -55,8 +56,8 @@ def parse_2fastq_parallel(file1, file2):
 
     Doesn't check that the readnames match.
     """
-    generator1 = name_seq_generator_from_fasta_fastq(file1)
-    generator2 = name_seq_generator_from_fasta_fastq(file2)
+    generator1 = basic_seq_utilities.name_seq_generator_from_fasta_fastq(file1)
+    generator2 = basic_seq_utilities.name_seq_generator_from_fasta_fastq(file2)
     if_finished_1, if_finished_2 = False, False
     while True:
         try:                    name1, seq1 = generator1.next()
