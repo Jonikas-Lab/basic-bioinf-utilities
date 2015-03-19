@@ -52,25 +52,29 @@ class DeepseqError(Exception):
 ### Parsing two fastq files in parallel (for paired-end deepseq data)
 
 def parse_2fastq_parallel(file1, file2):
-    """ Parse two fastq files in parallel - generator yielding (name, seq1, seq2) tuples (ignores qualities).
+    """ Parse two fastq files in parallel - generator yielding (name, seq1, seq2, qual1, qual2) tuples.
 
     Doesn't check that the readnames match.
     """
-    generator1 = basic_seq_utilities.name_seq_generator_from_fasta_fastq(file1)
-    generator2 = basic_seq_utilities.name_seq_generator_from_fasta_fastq(file2)
-    if_finished_1, if_finished_2 = False, False
-    while True:
-        try:                    name1, seq1 = generator1.next()
-        except StopIteration:   if_finished_1 = True
-        try:                    name2, seq2 = generator2.next()
-        except StopIteration:   if_finished_2 = True
-        name = name1.split()[0]
-        if not if_finished_1 and not if_finished_2:
-            yield (name, seq1, seq2)
-        elif if_finished_1 and if_finished_2:
-            raise StopIteration
-        else:
-            raise MutantError("One file finished but the other one didn't! Read name %s"%name)
+    from Bio.SeqIO.QualityIO import FastqGeneralIterator    # Bio is the biopython package
+    with open(file1) as INFILE1:
+        with open(file2) as INFILE2:
+            generator1 = FastqGeneralIterator(INFILE1)
+            generator2 = FastqGeneralIterator(INFILE2)
+            if_finished_1, if_finished_2 = False, False
+            while True:
+                try:                    name1, seq1, qual1 = generator1.next()
+                except StopIteration:   if_finished_1 = True
+                try:                    name2, seq2, qual2 = generator2.next()
+                except StopIteration:   if_finished_2 = True
+                name = name1.split()[0]
+                if not if_finished_1 and not if_finished_2:
+                    yield (name, seq1, seq2, qual1, qual2)
+                elif if_finished_1 and if_finished_2:
+                    raise StopIteration
+                else:
+                    raise MutantError("One file finished but the other one didn't! Read name %s"%(
+                                                                        name if if_finished_2 else name2.split()[0]))
     # TODO unit-test!
 
 
