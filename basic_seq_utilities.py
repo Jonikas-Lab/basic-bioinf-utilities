@@ -85,6 +85,11 @@ def write_fasta_line(seqname, seq, OUTFILE=sys.stdout):
     OUTFILE.write(">%s\n%s\n"%(seqname, seq))
 
 
+def write_fastq_line(seqname, seq, qual, OUTFILE=sys.stdout):
+    """ Given a name, sequence and quality, print in fastq format to OUTFILE (default STDOUT). """
+    OUTFILE.write("@%s\n%s\n+\n%s\n"%(seqname, seq, qual))
+
+
 def name_seq_generator_from_fasta(fasta_infile):
     """ Yield successive (name,seq) pairs read from fasta file. """
     from Bio import SeqIO   # Bio is the biopython package
