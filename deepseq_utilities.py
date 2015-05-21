@@ -6,6 +6,9 @@
 
 # basic libraries
 import unittest
+# other packages
+import HTSeq
+# my modules
 import basic_seq_utilities
 
 
@@ -73,9 +76,38 @@ def parse_2fastq_parallel(file1, file2):
                 elif if_finished_1 and if_finished_2:
                     raise StopIteration
                 else:
-                    raise MutantError("One file finished but the other one didn't! Read name %s"%(
+                    raise DeepseqError("One file finished but the other one didn't! Read name %s"%(
                                                                         name if if_finished_2 else name2.split()[0]))
     # TODO unit-test!
+
+def parse_fastq_sam_parallel(fastq_infile, sam_infile):
+    """ Parse fastq and resulting sam file in parallel - generator yielding (name, seq, qual, alignment_list) tuples.
+
+    The sam file may contain multiple alignments per read.  Program checks that the readnames match.
+    """
+    fastq_generator = basic_seq_utilities.parse_fastq(fastq_infile)
+    sam_generator = iter(HTSeq.bundle_multiple_alignments(HTSeq.SAM_Reader(sam_infile)))
+    if_finished_fastq, if_finished_sam = False, False
+    while True:
+        try:                    name, seq, qual = fastq_generator.next()
+        except StopIteration:   if_finished_fastq = True
+        try:                    alns = sam_generator.next()
+        except StopIteration:   if_finished_sam = True
+        # if both finished, good, we're doine
+        if if_finished_fastq and if_finished_sam:
+            raise StopIteration
+        # if one file was finished but the other wasn't, error!
+        elif if_finished_fastq or if_finished_sam:
+            raise DeepseqError("Parsing seq/aln files in parallel - inconsistent finished states! "
+                              +"(If finished: %s %s, %s %s)"%(fastq_infile, if_finished_fastq, sam_infile, if_finished_sam))
+        # if all the files still contained data, yield it
+        else:
+            name = name.split()[0]
+            name2 = alns[0].read.name.split()[0]
+            if not name2 == name:
+                raise DeepseqError("Non-matching readnames between files! %s in %s, %s in %s"%(fastq_infile, name, 
+                                                                                               sam_infile, name2))
+            yield (name, seq, qual, alns)
 
 
 ### Getting mutation counts from various SAM alignment format fields, as read by HTSeq
@@ -223,6 +255,16 @@ class Fake_deepseq_objects:
 
 class Testing(unittest.TestCase):
     """ Unit-tests for all the functions/classes in this module. """
+
+    def test__parse_fastq_sam_parallel(self):
+        output = list(parse_fastq_sam_parallel('_test_inputs/test_parallel2.fq', '_test_inputs/test_parallel2.sam'))
+        assert len(output) == 3
+        assert [len(x) for x in output] == [4, 4, 4]
+        assert [len(x[3]) for x in output] == [2, 1, 1]
+        assert output[0][3][0].read.name == output[0][0] == 'ROCKFORD:4:1:1680:975#0/1'
+        assert output[0][3][0].read.seq == output[0][1] ==  'ACTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA'
+        # the generator isn't really run until you ask for its results, so I have to run list on it to get the error
+        self.assertRaises(DeepseqError, list, parse_fastq_sam_parallel('_test_inputs/test.fq', '_test_inputs/test_parallel2.sam'))
 
     def test__check_mutation_count_by_CIGAR_string(self):
         # no alignment (CIGAR is None)
