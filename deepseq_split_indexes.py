@@ -2,6 +2,7 @@
 
 """
 Split a fastq file into multiple files based on the index (only indexes listed with -i option; others go in _unmatched.fq file).
+
 Assumes the index is the last ":"-separated field of the sequence ID.
  -- Weronika Patena, 2015
 USAGE: deepseq_split_indexes.py -i indexes infile outfile_basename
@@ -30,6 +31,9 @@ def define_option_parser():
                           + "Ignores all other options/arguments. (default %default).")
 
     ### functionality options
+    parser.add_option('-s', '--index_in_sequence', action='store_true', default=False, 
+                      help="Look for the index at the beginning of the sequence"
+                          +" (otherwise Assumes the index is the last :-separated field of the sequence ID).")
     parser.add_option('-i', '--index_list', metavar='A,B', 
                       help="Comma-separated list of indexes to put in different files (no spaces).")
     parser.add_option('-q', '--quiet', action="store_true", default=False,
@@ -52,15 +56,25 @@ def main(args, options):
     unmatched_OUTFILE = open("%s_unmatched.fq"%outfile_base, 'w')
     index_counts = {index: 0 for index in indexes}
     unmatched_count = 0
+    if options.index_in_sequence:
+        index_len = set(len(x) for x in indexes)
+        if len(index_len) > 1:
+            raise Exception("Indexes need to all have the same lengths!  Found lengths %s from indexes %s"%(index_len, indexes))
+        index_len = index_len.pop()
+        get_index = lambda name,seq:  seq[:index_len]
+        make_output = lambda name, seq, qual, index: ("%s:%s"%(name,index), seq[index_len:], qual[index_len:])
+    else:
+        get_index = lambda name, seq:  name.split(':')[-1]
+        make_output = lambda name, seq, qual, index: (name, seq, qual)
     for (name,seq,qual) in basic_seq_utilities.parse_fastq(infile):
-        index = name.split(':')[-1]
+        index = get_index(name, seq) 
         try:
             OUTFILE = index_OUTFILES[index]
             index_counts[index] += 1
         except KeyError:
             OUTFILE = unmatched_OUTFILE
             unmatched_count += 1
-        basic_seq_utilities.write_fastq_line(name, seq, qual, OUTFILE)
+        basic_seq_utilities.write_fastq_line(*make_output(name, seq, qual, index), OUTFILE=OUTFILE)
     if not options.quiet:
         total = unmatched_count + sum(index_counts.values())
         print "%s reads:\n%s unmatched\n%s"%(total, value_and_percentages(unmatched_count, [total]), 
@@ -74,6 +88,8 @@ def do_test_run():
     # tests in (testname, [test_description,] arg_and_infile_string) format
     test_runs = [ 
         ("split-index", "-i CAGATC,ACCCGG -q %s/%s"%(test_folder, 'with_indexes.fq')),
+        ("split-index", "-s -i CAGATC,ACCCGG -q %s/%s"%(test_folder, 'with_indexes_inseq.fq')),  
+        # same test name because same reference outfiles
                 ]
     # argument_converter converts (parser,options,args) to the correct argument order for main
     argument_converter = lambda parser,options,args: (args, options)
