@@ -300,12 +300,10 @@ def chromosome_type(chromosome, separate_other=False):
     else:                   return 'other'
 
 
-def chromosome_sort_key(chromosome_name):
-    """ Sort key: 1) sort chromosomes, then other, then scaffolds; 2) inside each category sort numerically if possible. 
+def chromosome_sort_key(chromosome_name, special_search_strings=[]):
+    """ Sort key: 1) sort chromosomes, then other, then scaffolds, then special; 2) in each category sort numerically/alpha.
 
     Numerical sort sorts 'chr1' before 'chr12' correctly.  Only numbers at the end of the chromosome name are recognized.
-    Underscores are stripped from 
-    Names are the full 
     The full original chromosome_name is used as the last part of the key, in case of two names resulting in the same key
      (like chr1 and chr_1 and chr01).
     """
@@ -316,6 +314,8 @@ def chromosome_sort_key(chromosome_name):
     chromosome_number = int(chromosome_data.group('number')) if chromosome_data.group('number') else 0
     if chromosome_base in ('chromosome', 'chr'):    return (1, 'chromosome', chromosome_number, chromosome_name)
     elif chromosome_base=='scaffold':               return (3, 'scaffold', chromosome_number, chromosome_name)
+    elif any(x in chromosome_base.lower() for x in special_search_strings):    
+                                                    return (4, chromosome_base, chromosome_number, chromosome_name)
     else:                                           return (2, chromosome_base, chromosome_number, chromosome_name) 
 
 
@@ -581,6 +581,7 @@ class Testing_everything(unittest.TestCase):
         assert chromosome_type('foo_bar_baz', separate_other=True) == 'foo'
 
     def test__chromosome_sort_key(self):
+        # testing standard sorting
         chroms_sorted = (
             'chr chromosome_1 chr_2 chr03 chr3 chr_3 chromosome_3 chromosome_12 chromosome_101 chromosome_300 chr301'.split()
             +'31a AAA AAA3 cassette chloroplast insertion_cassettes_31_a some_thing something31a'.split()
@@ -590,6 +591,10 @@ class Testing_everything(unittest.TestCase):
             chroms = list(chroms_sorted)
             random.shuffle(chroms)
             assert sorted(chroms, key=chromosome_sort_key) == chroms_sorted
+        # testing putting custom special cases at the end 
+        chroms_sort_1, chroms_sort_2 = 'chromosome_1 X_special scaffold_3'.split(), 'chromosome_1 scaffold_3 X_special'.split()
+        assert sorted(chroms_sort_1, key = chromosome_sort_key) == chroms_sort_1
+        assert sorted(chroms_sort_1, key = lambda c: chromosome_sort_key(c, special_search_strings=['special'])) == chroms_sort_2
 
     def test__chromosome_color(self):
         assert all([chromosome_color(c) == 'black' for c in 'chromosome_1 chromosome chromosome_A'.split()])
