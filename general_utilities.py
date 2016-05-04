@@ -467,7 +467,7 @@ def int_or_float(x):
     else:               return x
 
 
-def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g', 
+def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g', value_format_str='%s',
                           NA_for_zero_division=True, exception_for_100='default', insert_word=None, words_for_percentages=None):
     """ Return a string containing val and val as percentage of each total: 1,[2,3] -> "1 (50%, 33%)".
 
@@ -489,7 +489,7 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
     if NA_for_zero_division:    full_percentage_getter = lambda x,total: 'N/A' if total==0 else percentage_getter(x,total)
     else:                       full_percentage_getter = percentage_getter
-    string_for_total = "%s%s"%(val, '' if insert_word is None else ' '+insert_word)
+    string_for_total = value_format_str%val + ('' if insert_word is None else ' '+insert_word)
     if words_for_percentages is None:   words_for_percentages = [None for _ in totals]
     words_for_percentages = ['' if x is None else ' '+x for x in words_for_percentages]
     strings_for_percentages = ["%s%s"%(full_percentage_getter(val,total), word) 
@@ -1011,6 +1011,10 @@ class Testing_everything(unittest.TestCase):
         # testing words_for_percentages option
         assert value_and_percentages(1, [2,4], False, words_for_percentages='A B'.split()) == "1 (50% A, 25% B)"
         assert value_and_percentages(1, [2,4], True, words_for_percentages=['of this', 'of that']) == "1 (0.5 of this, 0.25 of that)"
+        # testing value_format_str option
+        assert value_and_percentages(3.3, [6.6], False, value_format_str='%s') == "3.3 (50%)"
+        assert value_and_percentages(3.3, [6.6], False, value_format_str='%.0f') == "3 (50%)"
+        assert value_and_percentages(3.3, [6.6], False, value_format_str='%.4f') == "3.3000 (50%)"
 
     def test__find_local_maxima_by_width(self):
         # basic functionality - find the local maximum
