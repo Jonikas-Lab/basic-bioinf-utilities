@@ -15,6 +15,7 @@ import random
 # other packages
 import numpy
 import scipy.stats
+import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import FloatVector
 R_stats = importr('stats')
@@ -29,6 +30,20 @@ def array_1D(x):
 
 
 ### STATISTICAL FUNCTIONS
+
+def fisher_exact(contingency_table):
+    """ Do a Fisher's exact test using the R version - useful for tables larger than 2x2.
+
+    I'm writing this because scipy.stats.fisher_exact only does 2x2 tables, and sometimes more is useful. 
+    Contingency_table should be a list of two lists of arbitrary equal length (like [[2, 3, 1], [10, 100, 1000]])
+    Returns a p-value.
+    """ 
+    # I don't really know how to make a matrix in R, so this may not be the most direct way, but it works
+    vector = robjects.IntVector(sum(contingency_table, []))
+    matrix = robjects.r.matrix(vector, nrow=2, byrow=True)
+    result = R_stats.fisher_test(matrix)
+    return result[0][0]
+
 
 def chisquare_goodness_of_fit(category_counts, expected_frequencies, dof_subtract=0, return_pvalue_only=True, min_count=50):
     """ Gives p-value for whether a list of category counts is different from the expected frequencies, using the chi-square test.
@@ -206,6 +221,17 @@ def binomial_CI(n, N, pct, a=1, b=1, n_pbins=1e3):
 
 class Testing_everything(unittest.TestCase):
     """ Testing all functions/classes.etc. """
+
+    def test__fisher_exact(self):
+        # for a 2x2 table, compare to scipy.stats.fisher_exact (using self.assertAlmostEqual for float comparison)
+        table_2x2 = [[2, 2], [100, 1000]]
+        pval = scipy.stats.fisher_exact(table_2x2)[1]
+        pval2 = fisher_exact(table_2x2)
+        self.assertAlmostEqual(pval, pval2)
+        # for a 2x3 table just compare to a result I got in R
+        table_2x3 = [[2, 2, 2], [10, 100, 1000]]
+        pval2 = fisher_exact(table_2x3)
+        self.assertAlmostEqual(pval2, 0.0001392)
 
     def test__chisquare_goodness_of_fit(self):
         kwargs = dict(return_pvalue_only=False, min_count=1)
