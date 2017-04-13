@@ -140,6 +140,7 @@ def FDR_adjust_pvalues(pvalue_list, N=None, method='BH'):
     if N is None:   return R_stats.p_adjust(FloatVector(pvalue_list), method=method)
     else:           return R_stats.p_adjust(FloatVector(pvalue_list), method=method, n=N)
 
+
 def binomial_CI(n, N, pct, a=1, b=1, n_pbins=1e3):
     """ Computes binomial confidence interval (Highest Posterior Density Region).
 
@@ -195,6 +196,26 @@ def binomial_CI(n, N, pct, a=1, b=1, n_pbins=1e3):
     lower = p_range[ (sorted_idxs[:j+1]).min() ]    
 
     return (mode, lower, upper)
+
+
+def R_clear_environment(garbage_collection_cycles=3):
+    """ Attempt to release memory held by R via rpy2.
+
+    Apparently doing a lot of calls to the rpy2-using functions here can cause memory usage to increase until the process is killed.
+    This is my attempt at fixing that based on a few StackOverflow answers.  Basically, delete all variables in R, 
+    explicitly run python garbage collection and R garbage collection, possibly multiple times.
+
+    Sources:
+     - http://stackoverflow.com/questions/5199334/clearing-memory-used-by-rpy2, 
+     - http://stackoverflow.com/questions/8144956/python-rpy2-module-refresh-global-r-environment?rq=1
+     - http://stackoverflow.com/questions/12277094/memory-leak-with-rpy?noredirect=1&lq=1
+    """
+    import rpy2.robjects as R
+    import gc
+    R.r('rm(list = ls(all.names=TRUE))')
+    for i in range(garbage_collection_cycles):
+        gc.collect()
+        R.r('gc()')
 
 
 # OLD NOTES ON FDR CORRECTION:
