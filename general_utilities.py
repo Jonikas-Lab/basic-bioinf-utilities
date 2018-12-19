@@ -9,7 +9,7 @@ Weronika Patena, 2010-2011
 from __future__ import division 
 import sys, os
 import unittest
-from collections import defaultdict
+import collections
 import pickle as Pickle     # rename so I can use pickle as a function name
 import subprocess
 import time
@@ -69,7 +69,7 @@ def filter_dict_by_keys(input_dict, good_keys):
 
 def count_list_values(input_list):
     """ Given a list, return a value:number_of_times_value_occurred_in_list dictionary. """
-    value_counts = defaultdict(lambda: 0)
+    value_counts = collections.defaultdict(lambda: 0)
     for value in input_list:
         value_counts[value] += 1
     return dict(value_counts)
@@ -154,7 +154,7 @@ def invert_dict_nodups(input_dict):
 
 def invert_dict_tolists(input_dict):
     """ Given a dict (duplicate values allowed), return value:key_list dict: {a:1,b:2,c:1]} -> {1:[a,c],2:b}."""
-    inverted_dict = defaultdict(lambda: set())
+    inverted_dict = collections.defaultdict(lambda: set())
     for key,value in input_dict.iteritems():
         inverted_dict[value].add(key)
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
@@ -176,7 +176,7 @@ def invert_listdict_nodups(input_dict):
 
 def invert_listdict_tolists(input_dict):
     """ Given a dict with list/set values, return single_value:key_list dict: {a:[1,2],b:[2]]} -> {1:[a],2:[a,b]}."""
-    inverted_dict = defaultdict(lambda: set())
+    inverted_dict = collections.defaultdict(lambda: set())
     for key,value_list in input_dict.iteritems():
         try:
             for value in value_list:
@@ -204,7 +204,28 @@ def flatten_lists(input_val, unique_only=False):
     else:           return all_vals
     # TODO unit-test!
 
-class keybased_defaultdict(defaultdict):
+def percentile_from_counter(counter, percentile):
+    """ Given a collections.Counter given the frequencies of values, calculate the Xth percentile of values 
+    without generating full list (for cases where the list would be really large and slow).
+    """
+    if not 0 <= percentile <= 100:
+        raise ValueError("percentile should be a number between 0 and 100!")
+    if not counter:
+        raise ValueError("counter should be non-empty!")
+    try:
+        total_count = sum(counter.values())
+        values_and_counts = sorted(counter.items())
+    except:
+        raise ValueError("counter should be a dictionary with numerical keys and values!")
+    curr_count = 0
+    for (val, count) in values_and_counts:
+        curr_count += count
+        if curr_count/total_count*100 == percentile and percentile != 100:
+            raise ValueError("the corner case where a percentile is exactly on the edge between values is currently not implemented")
+        if curr_count/total_count*100 >= percentile:
+            return val
+
+class keybased_defaultdict(collections.defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
     Normal defaultdict(int)[9] is 0, because no argument is passed to the int function, and int() is 0.  
     On the other hand keybased_defaultdict(int)[9] would be 9, keybased_defaultdict(bool)[9] would be True, etc.  """
@@ -1083,6 +1104,26 @@ class Testing_everything(unittest.TestCase):
         self.assertRaises(ValueError, merge_values_to_unique, [[1,1], [2,2]], convert_for_set=tuple)
         assert merge_values_to_unique([[1,1], [2,2]], blank_value=[1,1], convert_for_set=tuple) == [2,2]
         # MAYBE-TODO add tests for the value_name and context args, which are only used for the error message?
+
+    def test__percentile_from_counter(self):
+        for p in (-100, 0, 1, 100, 1e10, 'a', None, 'what'):
+            self.assertRaises(ValueError, percentile_from_counter, collections.Counter(), p)
+        for c in ({}, {'a': 'a'}):
+            self.assertRaises(ValueError, percentile_from_counter, c, 0.5)
+        assert percentile_from_counter({1:4, 2:2, 3:4},  0) == 1
+        assert percentile_from_counter({1:4, 2:2, 3:4}, 10) == 1
+        assert percentile_from_counter({1:4, 2:2, 3:4}, 30) == 1
+        assert percentile_from_counter({1:4, 2:2, 3:4}, 50) == 2
+        assert percentile_from_counter({1:4, 2:2, 3:4}, 70) == 3
+        assert percentile_from_counter({1:4, 2:2, 3:4}, 90) == 3
+        assert percentile_from_counter({1:4, 2:2, 3:4},100) == 3
+        # corner case currently not implemented
+        self.assertRaises(ValueError, percentile_from_counter, {1:1, 2:1}, 50)
+        self.assertRaises(ValueError, percentile_from_counter, {1:4, 2:1}, 80)
+        # LATER-TODO when I implement it, it should look like this
+        # assert percentile_from_counter({1: 1, 2:1}, 50) == 1.5
+        # assert percentile_from_counter({1: 4, 2:1}, 80) == 1.2
+
 
     # TODO add tests for everything else
 
