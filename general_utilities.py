@@ -214,16 +214,22 @@ def percentile_from_counter(counter, percentile):
         raise ValueError("counter should be non-empty!")
     try:
         total_count = sum(counter.values())
-        values_and_counts = sorted(counter.items())
+        values_and_counts = sorted((v,c) for (v,c) in counter.items() if c)
+        check_if_keys_are_numbers = sum(counter.keys())/3
     except:
         raise ValueError("counter should be a dictionary with numerical keys and values!")
     curr_count = 0
-    for (val, count) in values_and_counts:
+    # special case for 100 now so I don't have to special-case it later
+    if percentile == 100:   return values_and_counts[-1][0]
+    # go through all values/counts in order until you reach the percentile
+    for n,(val, count) in enumerate(values_and_counts):
         curr_count += count
-        if curr_count/total_count*100 == percentile and percentile != 100:
-            raise ValueError("the corner case where a percentile is exactly on the edge between values is currently not implemented")
-        if curr_count/total_count*100 >= percentile:
+        if curr_count/total_count*100 > percentile:
             return val
+        # if the percentile lands exactly on the edge between values, do math
+        if curr_count/total_count*100 == percentile:
+            next_val, next_count = values_and_counts[n+1]
+            return (val*count + next_val*next_count) / (count + next_count)
 
 class keybased_defaultdict(collections.defaultdict):
     """ A defaultdict equivalent that passes the key as an argument to the default-value factory, instead of no argumnets.
@@ -1108,7 +1114,7 @@ class Testing_everything(unittest.TestCase):
     def test__percentile_from_counter(self):
         for p in (-100, 0, 1, 100, 1e10, 'a', None, 'what'):
             self.assertRaises(ValueError, percentile_from_counter, collections.Counter(), p)
-        for c in ({}, {'a': 'a'}):
+        for c in ({}, {'a': 'a'}, {'a': 1}, {1: 'a'}):
             self.assertRaises(ValueError, percentile_from_counter, c, 0.5)
         assert percentile_from_counter({1:4, 2:2, 3:4},  0) == 1
         assert percentile_from_counter({1:4, 2:2, 3:4}, 10) == 1
@@ -1117,13 +1123,9 @@ class Testing_everything(unittest.TestCase):
         assert percentile_from_counter({1:4, 2:2, 3:4}, 70) == 3
         assert percentile_from_counter({1:4, 2:2, 3:4}, 90) == 3
         assert percentile_from_counter({1:4, 2:2, 3:4},100) == 3
-        # corner case currently not implemented
-        self.assertRaises(ValueError, percentile_from_counter, {1:1, 2:1}, 50)
-        self.assertRaises(ValueError, percentile_from_counter, {1:4, 2:1}, 80)
-        # LATER-TODO when I implement it, it should look like this
-        # assert percentile_from_counter({1: 1, 2:1}, 50) == 1.5
-        # assert percentile_from_counter({1: 4, 2:1}, 80) == 1.2
-
+        # corner case when percentage lands exactly between values
+        assert percentile_from_counter({1: 1, 2:1}, 50) == 1.5
+        assert percentile_from_counter({1: 4, 2:1}, 80) == 1.2
 
     # TODO add tests for everything else
 
