@@ -113,6 +113,9 @@ def remove_yticklabels(ax=None):
     mplt.yticks(yticks, [''] * len(yticks))
     mplt.ylim(lim)
 
+def remove_ticks(axis='both'):
+    """ Remove ticks while keeping the labels. You can pass 'x' or 'y' as the axis; default both. """
+    mplt.tick_params(axis=axis, length=0)
 
 def set_axes_limits(x_min=None, x_max=None, y_min=None, y_max=None, ax=None):
     """ Set whichever limits aren't None, keeping the others the same. """
@@ -306,6 +309,43 @@ add_colormap_to_matplotlib({'red': gh_green, 'green': gh_red, 'blue': gh_red}, '
 
 # Explanation of making colormaps (esp. LinearSegmentedColormap): http://matplotlib.org/examples/pylab_examples/custom_cmap.html
 # Another link on modifying colormaps: http://www.scipy.org/Cookbook/Matplotlib/ColormapTransformations
+# This is pretty simple really!  In each tuple, the first number is the position along the colormap length, the second is the value of the color, and the third should be the same as the second if I don't want discontinuities.  Only need to define as many points as I need.
+
+# Making a divergent cyan-blue-yellow colormap based on that information.  Cyan is blue+green; black is none; yellow is red+green.
+add_colormap_to_matplotlib({'red': ((0.0, 0.0, 0.0), 
+                                    (0.5, 0.0, 0.0), 
+                                    (1.0, 1.0, 1.0)), 
+                            'green': ((0.0, 1.0, 1.0), 
+                                      (0.5, 0.0, 0.0), 
+                                      (1.0, 1.0, 1.0)), 
+                            'blue': ((0.0, 1.0, 1.0), 
+                                     (0.5, 0.0, 0.0), 
+                                     (1.0, 0.0, 0.0))}, 
+                           'wp_CyBkYl')
+
+# Another divergent one: cyan - white - yellow
+add_colormap_to_matplotlib({'red': ((0.0, 0.0, 0.0), 
+                                    (0.5, 1.0, 1.0), 
+                                    (1.0, 1.0, 1.0)), 
+                            'green': ((0.0, 1.0, 1.0), 
+                                      (0.5, 1.0, 1.0), 
+                                      (1.0, 1.0, 1.0)), 
+                            'blue': ((0.0, 1.0, 1.0), 
+                                     (0.5, 1.0, 1.0), 
+                                     (1.0, 0.0, 0.0))}, 
+                           'wp_CyWhYl')
+
+# And white-black-yellow
+add_colormap_to_matplotlib({'red': ((0.0, 1.0, 1.0), 
+                                    (0.5, 0.0, 0.0), 
+                                    (1.0, 1.0, 1.0)), 
+                            'green': ((0.0, 1.0, 1.0), 
+                                      (0.5, 0.0, 0.0), 
+                                      (1.0, 1.0, 1.0)), 
+                            'blue': ((0.0, 1.0, 1.0), 
+                                     (0.5, 0.0, 0.0), 
+                                     (1.0, 0.0, 0.0))}, 
+                           'wp_WhBkYl')
 
 # Getting a bit more complicated by taking fractions of the values (I have to admit I don't quite understand how it works)
 # Notes: try plotting gh_red, gh_green and gh_blue in the -0.1 to 1.1 range... I THINK what's going on is that only x in the 0-1 range are considered, and that values below 0 count as 0, and values above 1 count as 1.  000 is black, 111 is white.  So:
