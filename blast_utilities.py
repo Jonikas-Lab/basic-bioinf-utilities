@@ -34,18 +34,29 @@ def parse_blast(infile):
     return result_dict
 
 
-def plot_blast(infile, min_evalue=None, min_evalue_by_subject=None, subject_order=None, skip_cassette_overlaps=False, 
+def plot_blast(infile=None, input_data=None, 
+               max_evalue=None, max_evalue_by_subject=None, subject_order=None, skip_cassette_overlaps=False, 
                subject_colors=None, cassette_gradient_cmap=None, query_lengths=None, 
                ncols=1, figsize=(12,8), titles=True, labels=True):
-    if min_evalue is not None and min_evalue_by_subject is not None:
-        raise Exception("Only specify min_evalue or min_evalue_by_subject, not both!")
+    """ Plot all the blast (or similar) alignments for each read.
+
+    Infile should be a tabularized blast result file (generated with -m9 option).
+    Alternatively, provide input_data, which should be a name:list_of_alignments result, where each alignment is a namedtuple
+     or object with the following fields: subject_id query_start query_end subject_start subject_end e_value aln_length.
+     (subject = chromosome the alignment is to; query = read).
+    """
+    if max_evalue is not None and max_evalue_by_subject is not None:
+        raise Exception("Only specify max_evalue or max_evalue_by_subject, not both!")
+    if (infile is None) + (input_data is None) != 1:
+        raise Exception("Need one infile or input_data, but not both!")
+    if infile is not None:
+        input_data = parse_blast(infile)
     if cassette_gradient_cmap is not None:
         cassette_length = 2223          # TODO at some point I should probably provide an infile with all the subject lengths/etc?
-    results_by_query = parse_blast(infile)
-    N = len(results_by_query)
+    N = len(input_data)
     nrows = math.ceil(N/ncols)
     mplt.figure(figsize=figsize)
-    for n, (query, alns) in enumerate(results_by_query.items()):
+    for n, (query, alns) in enumerate(input_data.items()):
         if skip_cassette_overlaps:
             cassette_positions = [(aln.query_start, aln.query_end) for aln in alns if 'insertion_cassette' in aln.subject_id]
             filtered_alns = []
@@ -56,10 +67,10 @@ def plot_blast(infile, min_evalue=None, min_evalue_by_subject=None, subject_orde
                 filtered_alns.append(aln)
         else:
             filtered_alns = alns
-        if min_evalue is not None:
-            filtered_alns = [aln for aln in filtered_alns if aln.e_value <= min_evalue]
-        if min_evalue_by_subject is not None:
-            filtered_alns = [aln for aln in filtered_alns if aln.e_value <= min_evalue_by_subject[aln.subject_id]]
+        if max_evalue is not None:
+            filtered_alns = [aln for aln in filtered_alns if aln.e_value <= max_evalue]
+        if max_evalue_by_subject is not None:
+            filtered_alns = [aln for aln in filtered_alns if aln.e_value <= max_evalue_by_subject[aln.subject_id]]
         all_subjects = set(aln.subject_id for aln in filtered_alns)
         if subject_order is not None:
             subjects_sorted = sorted(all_subjects, key = lambda s: (subject_order(s), s))
@@ -109,4 +120,3 @@ def plot_blast(infile, min_evalue=None, min_evalue_by_subject=None, subject_orde
         if labels:  mplt.yticks(range(-len(all_subjects), 1), list(reversed(subjects_sorted)) + ['query'])
         else:       mplt.yticks(range(-len(all_subjects), 1), [])   
         if not titles and not labels:   mplt.ylabel(n+1, rotation=0)
-
