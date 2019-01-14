@@ -164,8 +164,10 @@ def plot_alns_multi_reads(input_data,
     N = len(input_data)
     nrows = math.ceil(N/ncols)
     mplt.figure(figsize=figsize)
-    max_readlength = max(max(aln.query_end for aln in alns) for alns in input_data.values())
-    all_chromosomes = set.union(*[set(aln.subject_id for aln in alns) for alns in input_data.values()])
+    # All the plots need to be aligned so that the cassette+IB+flankseq alignment (which is the first alignment in each set)
+    #   is in the same position in all the plots, and the x scaling is always the same.  Calculate the max needed plot size:
+    max_dist_before_IB = max(max(-aln.query_start+alns[0].query_start for aln in alns[1:]) for alns in input_data.values())
+    max_dist_after_IB = max(max(aln.query_end-alns[0].query_end for aln in alns[1:]) for alns in input_data.values())
     for n, (query, alns) in enumerate(input_data.items()):
         if skip_cassette_overlaps:  filtered_alns = _filter_cassette_alns(alns)
         else:                       filtered_alns = alns
@@ -191,8 +193,12 @@ def plot_alns_multi_reads(input_data,
             _add_markers(curr_alns, subject, ypos=-i-0.1)
         # plot the query again to keep the xrange from getting screwed up by imshow
         mplt.barh(0.8, query_len, 0.4, 0, color='black')
-        mplt.xticks(range(0, int(max_readlength), 100), [])
-        mplt.xlim(max_readlength * -0.02, max_readlength * 1.02)
+        # All the plots need to be aligned so that the cassette+IB+flankseq alignment (which is the first alignment in each set)
+        #   is in the same position in all the plots, and the x scaling is always the same.  Set the xlim/ticks so it works:
+        minpos = alns[0].query_start - max_dist_before_IB - 100
+        maxpos = alns[0].query_end + max_dist_after_IB + 100
+        mplt.xlim(minpos, maxpos)
+        mplt.xticks(range(minpos, maxpos, 100), [])
         if titles:  mplt.title(query)
         if labels:  mplt.yticks(range(-len(all_subjects)+1, 2), list(reversed(subjects_sorted)) + ['query'])
         else:       mplt.yticks(range(-len(all_subjects)+1, 2), [])   
