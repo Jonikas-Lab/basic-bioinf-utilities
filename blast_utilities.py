@@ -95,7 +95,7 @@ def _add_markers(alns, subject, ypos):
 
 
 def plot_blast(infile=None, input_data=None, 
-               max_evalue=None, max_evalue_by_subject=None, subject_order=None, skip_cassette_overlaps=False, 
+               max_evalue=None, max_evalue_by_subject=None, subject_order=None, skip_cassette_overlaps=False, skip_subjects=[],
                subject_colors=None, cassette_gradient_cmap=None, query_lengths=None, 
                ncols=1, figsize=(12,8), titles=True, labels=True):
     """ Plot all the blast (or similar) alignments for each read.
@@ -123,7 +123,7 @@ def plot_blast(infile=None, input_data=None,
             filtered_alns = [aln for aln in filtered_alns if aln.e_value <= max_evalue]
         if max_evalue_by_subject is not None:
             filtered_alns = [aln for aln in filtered_alns if aln.e_value <= max_evalue_by_subject[aln.subject_id]]
-        all_subjects = set(aln.subject_id for aln in filtered_alns)
+        all_subjects = set(aln.subject_id for aln in filtered_alns if aln.subject_id not in skip_subjects)
         if subject_order is not None:   subjects_sorted = sorted(all_subjects, key = lambda s: (subject_order(s), s))
         else:                           subjects_sorted = sorted(all_subjects)
         mplt.subplot(nrows, ncols, n+1)
