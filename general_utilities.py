@@ -524,6 +524,39 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     return "%s (%s)"%(string_for_total, ', '.join(strings_for_percentages))
 
 
+def round2(val, precision):
+    """ like builtin round, but if precision is <1, returns an int instead of a float to avoid looking more accurate than it is."""
+    x = round(val, precision)
+    if precision >0:    return x
+    else:               return int(x)
+
+
+def format_number(x, rounding=1, min_fraction=0.1, show_small_numbers=True):
+    """ Format number as a string with k/M (thousands/millions) as needed, with rounding to <rounding> digits after the dot. 
+
+    min_fraction - what fraction of a thousand something has to be to be expressed in thousands instead of ones:
+     - if min_fraction is 1, 1000 will be "1k" but 999 will be "999".
+     - if min_fraction is 0.1, 999 will be "1k" (rounded) and 100 will be "0.1k".
+
+    show_small_numbers: if True, 0.0001 will show as "0.0001" regardless of rounding; if False, with rounding <4 it'll show as 0.
+    """
+    if x < 0:
+        sign = '-'
+        x = abs(x)
+    else:
+        sign = ''
+    if min_fraction > 1:
+        raise Exception("min_fraction can't be >1!")
+    if min_fraction < 1 and (10**rounding * min_fraction < 1):
+        raise Exception("With this min_fraction/rounding combination, non-zero numbers can show up as zero - probably a bad idea!")
+    numbers_suffixes = [(10**3, 'k'), (10**6, 'M'), (10**9, 'B'), (10**12, 'T')]
+    for (N, suffix) in reversed(numbers_suffixes):
+        if x >= N*min_fraction:         return "%s%s%s"%(sign,round2(x/N, rounding), suffix)
+    x2 = round2(x, rounding)
+    if x2 == 0 and show_small_numbers:  return "%s%s"%(sign,x)
+    else:                               return "%s%s"%(sign,x2)
+
+
 ### Get rid of NaN/inf numbers singly or in lists/dicts, replace by input
 
 def clean_number(val,replace_NaN,replace_Inf,replace_NegInf,make_positive=False):
@@ -1126,6 +1159,40 @@ class Testing_everything(unittest.TestCase):
         # corner case when percentage lands exactly between values
         assert percentile_from_counter({1: 1, 2:1}, 50) == 1.5
         assert percentile_from_counter({1: 4, 2:1}, 80) == 1.2
+
+    def test__round2(self):
+        assert round2(100, 1) == 100.0
+        assert round2(100, 0) == 100
+        assert round2(100, -1) == 100
+        assert round2(111, 0) == 111
+        assert round2(111, -2) == 100
+        assert round2(1/3, 1) == 0.3
+        assert round2(1/3, 0) == 0
+        assert round2(1/3, 4) == 0.3333
+        assert round2(-1/3, 4) == -0.3333
+
+    def test__format_number(self):
+        self.assertRaises(Exception, format_number, 100, 0, 0.5)
+        self.assertRaises(Exception, format_number, 100, 1, 0.09)
+        self.assertRaises(Exception, format_number, 100, 0, 1.0001)
+        self.assertRaises(Exception, format_number, 100, 0, 3)
+        for (multiplier,suffix) in [(1,''), (10**3, 'k'), (10**6, 'M'), (10**9, 'B'), (10**12, 'T')]:
+            for (sign,s) in [(1,''), (-1, '-')]:
+                assert format_number(1*multiplier*sign, 0, 1) == s+'1'+suffix
+                assert format_number(1*multiplier*sign, 1, 1) == s+'1.0'+suffix
+                assert format_number(1.2*multiplier*sign, 0, 1) == s+'1'+suffix
+                assert format_number(1.2*multiplier*sign, 1, 1) == s+'1.2'+suffix
+                assert format_number(1.2*multiplier*sign, 0, 1) == s+'1'+suffix
+                assert format_number(0.9*multiplier*sign, 1, 0.1) == s+'0.9'+suffix
+                assert format_number(0.1*multiplier*sign, 1, 0.1) == s+'0.1'+suffix
+        assert format_number(900, 1, 1) == '900.0'
+        assert format_number(900, 1, 0.5) == '0.9k'
+        assert format_number(100, 1, 0.5) == '100.0'
+        assert format_number(100, 1, 0.1) == '0.1k'
+        # small numbers test
+        assert format_number(0.0001, 4, 1, True) == '0.0001'
+        assert format_number(0.0001, 1, 1, True) == '0.0001'
+        assert format_number(0.0001, 1, 1, False) == '0.0'
 
     # TODO add tests for everything else
 
