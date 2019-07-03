@@ -31,7 +31,7 @@ def array_1D(x):
 
 ### STATISTICAL FUNCTIONS
 
-def fisher_exact(contingency_table):
+def fisher_exact(contingency_table, workspace=2e5):
     """ Do a Fisher's exact test using the R version - useful for tables larger than 2x2.
 
     I'm writing this because scipy.stats.fisher_exact only does 2x2 tables, and sometimes more is useful. 
@@ -41,7 +41,7 @@ def fisher_exact(contingency_table):
     # I don't really know how to make a matrix in R, so this may not be the most direct way, but it works
     vector = robjects.IntVector(sum(contingency_table, []))
     matrix = robjects.r.matrix(vector, nrow=2, byrow=True)
-    result = R_stats.fisher_test(matrix)
+    result = R_stats.fisher_test(matrix, workspace=workspace)
     return result[0][0]
 
 
