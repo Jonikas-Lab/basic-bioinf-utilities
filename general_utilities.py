@@ -499,6 +499,7 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, print_to
                           NA_for_zero_division=True, exception_for_100='default', insert_word=None, words_for_percentages=None):
     """ Return a string containing val and val as percentage of each total: 1,[2,3] returns "1 (50%, 33%)".
 
+    totals can be a single number instead of a list.
     If fractions_not_percentages, 1,[2,3] returns "1 (0.5, 0.33)" instead of "1 (50%, 33%)".
     If print_totals, 1,[2] returns "1/2 (50%)" instead of just "1 (50%)"; if there's more than one total, raises an exception.
     percentage_format_str is the string used to format each percentage/fraction (in .X, X is the precision in digits).
@@ -509,6 +510,8 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, print_to
     Words_for_percentages must be a list of strings same length as totals (or None):
      if given, return "x (y% WORD1, z% WORD2)" instead of just "x (y%, z%)"
     """ 
+    if type(totals) in (int, float):
+        totals = [totals]
     if exception_for_100=='default': 
         exception_for_100 = True if (not fractions_not_percentages and percentage_format_str in ['%.2g','%.2f']) else False
     def _format_number(number):
@@ -1052,6 +1055,7 @@ class Testing_everything(unittest.TestCase):
 
     def test__value_and_percentages(self):
         assert value_and_percentages(1, [2], False) == "1 (50%)"
+        assert value_and_percentages(1,  2,  False) == "1 (50%)"
         assert value_and_percentages(1, [2], True) == "1 (0.5)"
         assert value_and_percentages(1, [2, 3, 100, 10000], False) == "1 (50%, 33%, 1%, 0.01%)"
         assert value_and_percentages(1, [2, 3, 100, 10000], True) == "1 (0.5, 0.33, 0.01, 0.0001)"
