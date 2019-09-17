@@ -494,11 +494,13 @@ def int_or_float(x):
     else:               return x
 
 
-def value_and_percentages(val, totals, fractions_not_percentages=False, percentage_format_str='%.2g', value_format_str='%s',
+def value_and_percentages(val, totals, fractions_not_percentages=False, print_totals=False, 
+                          percentage_format_str='%.2g', value_format_str='%s',
                           NA_for_zero_division=True, exception_for_100='default', insert_word=None, words_for_percentages=None):
-    """ Return a string containing val and val as percentage of each total: 1,[2,3] -> "1 (50%, 33%)".
+    """ Return a string containing val and val as percentage of each total: 1,[2,3] returns "1 (50%, 33%)".
 
-    If fractions_not_percentages=True, 1,[2,3] -> "1 (0.5, 0.33)" instead.
+    If fractions_not_percentages, 1,[2,3] returns "1 (0.5, 0.33)" instead of "1 (50%, 33%)".
+    If print_totals, 1,[2] returns "1/2 (50%)" instead of just "1 (50%)"; if there's more than one total, raises an exception.
     percentage_format_str is the string used to format each percentage/fraction (in .X, X is the precision in digits).
     If NA_for_zero_division is True, just print N/A for dividing-by-zero cases rather than raising an exception.
     If exception_for_100 is True, 100 is formatted as '100' rather than '1e+02' even if precision is 2.
@@ -516,7 +518,12 @@ def value_and_percentages(val, totals, fractions_not_percentages=False, percenta
     else:                           percentage_getter = lambda x,total: _format_number(100*x/total) + '%'
     if NA_for_zero_division:    full_percentage_getter = lambda x,total: 'N/A' if total==0 else percentage_getter(x,total)
     else:                       full_percentage_getter = percentage_getter
-    string_for_total = value_format_str%val + ('' if insert_word is None else ' '+insert_word)
+    string_for_total = value_format_str%val
+    if print_totals:
+        if len(totals)>1:   raise Exception("Can't print totals with multiple totals!")     # MAYBE-TODO implement this somehow?
+        string_for_total += '/%s'%(totals[0])
+    if insert_word: 
+        string_for_total += ' '+insert_word
     if words_for_percentages is None:   words_for_percentages = [None for _ in totals]
     words_for_percentages = ['' if x is None else ' '+x for x in words_for_percentages]
     strings_for_percentages = ["%s%s"%(full_percentage_getter(val,total), word) 
@@ -1052,19 +1059,21 @@ class Testing_everything(unittest.TestCase):
         assert value_and_percentages(1, [3, 7000], False, percentage_format_str='%.4g') == "1 (33.33%, 0.01429%)"
         assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.2g') == "1 (0.33, 0.00014)"
         assert value_and_percentages(1, [3, 7000], True, percentage_format_str='%.4g') == "1 (0.3333, 0.0001429)"
+        assert value_and_percentages(1, [2], False, True) == "1/2 (50%)"
+        self.assertRaises(Exception, value_and_percentages, 1, [2,3], False, True)
         # NA_for_zero_division - if True, just print N/A for division-by-zero rather than raising an exception
         for zero in (0, 0.0):
             self.assertRaises(ZeroDivisionError, value_and_percentages, 1, [zero], NA_for_zero_division=False)
             assert value_and_percentages(1, [zero], NA_for_zero_division=True) == "1 (N/A)"
         # exception_for_100 (default True for percentages with '%.2g' and False for fractions/otherwise)
-        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100='default') == "1 (100%)"
-        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=True) == "1 (100%)"
-        assert value_and_percentages(1, [1], False, '%.2g', exception_for_100=False) == "1 (1e+02%)"
-        assert value_and_percentages(1, [1], False, '%.1g', exception_for_100='default') == "1 (1e+02%)"
+        assert value_and_percentages(1, [1], False, percentage_format_str='%.2g', exception_for_100='default') == "1 (100%)"
+        assert value_and_percentages(1, [1], False, percentage_format_str='%.2g', exception_for_100=True) == "1 (100%)"
+        assert value_and_percentages(1, [1], False, percentage_format_str='%.2g', exception_for_100=False) == "1 (1e+02%)"
+        assert value_and_percentages(1, [1], False, percentage_format_str='%.1g', exception_for_100='default') == "1 (1e+02%)"
         assert value_and_percentages(1, [1], True) == "1 (1)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100='default') == "1 (1e+02)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100=False) == "1 (1e+02)"
-        assert value_and_percentages(1, [0.01], True, '%.2g', exception_for_100=True) == "1 (100)"
+        assert value_and_percentages(1, [0.01], True, percentage_format_str='%.2g', exception_for_100='default') == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, percentage_format_str='%.2g', exception_for_100=False) == "1 (1e+02)"
+        assert value_and_percentages(1, [0.01], True, percentage_format_str='%.2g', exception_for_100=True) == "1 (100)"
         # testing insert_word option
         assert value_and_percentages(1, [2], False, insert_word='A') == "1 A (50%)"
         assert value_and_percentages(1, [2], True, insert_word='turtle(s)') == "1 turtle(s) (0.5)"
