@@ -207,6 +207,20 @@ def check_mutation_count_try_all_methods(HTSeq_alignment, treat_unknown_as='unkn
                                                           ignore_introns=ignore_introns)
 
 
+def aln_read_coverage(HTSeq_alignment):
+    """ Given an HTSeq alignment, return (start,end) tuple describing the part of the read it covers. """
+    cigar = HTSeq_alignment.cigar
+    if cigar[0].type == 'S':        start = cigar[1].query_from
+    else:                           start = 0
+    if cigar[-1].type == 'S':       end = cigar[-2].query_to
+    else:                           end = cigar[-1].query_to
+    return start, end
+
+def read_coverage_all_alns(alns):
+    """ Given a list of HTSeq alignment objects, return (start,end) tuple describing the part of the read covered by any of them. """
+    starts, ends = zip(*[aln_read_coverage(a) for a in alns])
+    return min(starts), max(ends)
+
 ################## unit tests ################## 
 
 class Fake_deepseq_objects:
