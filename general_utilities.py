@@ -361,11 +361,12 @@ def read_tab_separated_file_with_headers(filename, ID_column=0, ignore_comments=
     # TODO add to unit-tests? Or some kind of test.
 
 
-def pickle(data, outfile_name, protocol=0):
+def pickle(data, outfile_name, protocol=-1):
     """ Run pickle.dump to save data to the outfile - small convenience function. 
 
     Pickle protocols: 0 is the backward-compatible version, 1 and 2 are faster but generate binary files.
     Protocol -1 will choose the highest available.
+    Protocol 2 will pickle new-style classes where 0 fails, so best to use that.
     """
     with open(outfile_name, 'w' if protocol==0 else 'wb') as PICKLEFILE:
         Pickle.dump(data, PICKLEFILE, protocol)
