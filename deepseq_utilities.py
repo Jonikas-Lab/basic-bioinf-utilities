@@ -216,10 +216,50 @@ def aln_read_coverage(HTSeq_alignment):
     else:                           end = cigar[-1].query_to
     return start, end
 
+def aln_read_coverage_fraction(HTSeq_alignment, percent_string=False):
+    """ Given an HTSeq alignment, return fraction of the read it covers (or percentage string). """
+    s, e = aln_read_coverage(HTSeq_alignment)
+    fraction = (e-s)/len(HTSeq_alignment.read.seq)
+    if percent_string:  return "%.0f%%"%(fraction*100)
+    else:               return fraction
+
 def read_coverage_all_alns(alns):
     """ Given a list of HTSeq alignment objects, return (start,end) tuple describing the part of the read covered by any of them. """
     starts, ends = zip(*[aln_read_coverage(a) for a in alns])
     return min(starts), max(ends)
+
+
+def print_aln_list_info(alns, sort=True):
+    """ Return string of useful information about a list of alignments, optionally sorted. """
+    aln_data = [('-' if a.not_primary_alignment else '+', '1' if a.pe_which=='first' else '2',   
+                aln_read_coverage_fraction(a, True), a.optional_field('NM'), 
+                a.iv.chrom, a.iv.start, a.iv.end) 
+               for a in alns]
+    if sort: aln_data.sort(key=lambda x: (x[0], x[1], -int(x[2][:-1]), x[3]))
+    return alns[0].read.name + '\n' + '\n'.join(str(x) for x in aln_data)
+
+
+def find_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02, bad_errors=0.05):
+    """ If there's exactly one alignment that meets min_coverage and max_errors 
+        while all other alignments are bad_coverage and bad_errors or worse, return that; otherwise return None.
+    """
+    acceptable_alns = [a for a in alns if aln_read_coverage_fraction(a) > bad_coverage 
+                       and check_mutation_count_try_all_methods(a)/len(a.read.seq) < bad_errors]
+    if len(acceptable_alns) != 1:   
+        return None
+    a = acceptable_alns[0]
+    if aln_read_coverage_fraction(a) > min_coverage and check_mutation_count_try_all_methods(a)/len(a.read.seq) < max_errors:
+        return a
+    else:
+        return None
+
+def primary_or_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02, bad_errors=0.05):
+    """ Return primary alignment if there is one, or the only alignment if there's only one, otherwise same as find_best_aln. """
+    if len(alns) == 1:      return alns[0]
+    primary = [a for a in alns if not a.not_primary_alignment]
+    if len(primary) == 1:   return primary[0]
+    elif len(primary) > 1:  print "Multiple primary alignments for %s - shouldn't happen!"%a.read.name
+    return find_best_aln(alns, min_coverage, bad_coverage, max_errors, bad_errors)
 
 ################## unit tests ################## 
 
