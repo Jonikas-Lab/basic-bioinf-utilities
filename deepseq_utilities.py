@@ -5,6 +5,7 @@
 """
 
 # basic libraries
+from __future__ import division
 import unittest
 # other packages
 import HTSeq
@@ -231,11 +232,13 @@ def read_coverage_all_alns(alns):
 
 def print_aln_list_info(alns, sort=True):
     """ Return string of useful information about a list of alignments, optionally sorted. """
+    if not alns:    return "no alignments!"
     aln_data = [('-' if a.not_primary_alignment else '+', '1' if a.pe_which=='first' else '2',   
                 aln_read_coverage_fraction(a, True), a.optional_field('NM'), 
                 a.iv.chrom, a.iv.start, a.iv.end) 
                for a in alns]
     if sort: aln_data.sort(key=lambda x: (x[0], x[1], -int(x[2][:-1]), x[3]))
+    # TODO make this a nicer string instead of just str() of a list!
     return alns[0].read.name + '\n' + '\n'.join(str(x) for x in aln_data)
 
 
