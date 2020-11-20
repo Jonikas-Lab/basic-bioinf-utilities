@@ -11,7 +11,6 @@ all the (header, seq) pairs of a fasta file, to use like this:
 """
 
 import sys
-from string import maketrans
 
 debug = 0
 
@@ -19,11 +18,11 @@ def print_seq(line):
     """ printing help function - takes (header,seq) tuples from fasta, or line strings from text. """
     # if the line is a string instead of a (header,seq) tuple, just print it
     if isinstance(line,str):
-        print line
+        print(line)
     # otherwise you got a (header,seq) tuple
     else:
         (header,seq) = line
-        print ">%s\n%s"%(header,seq)
+        print(">%s\n%s"%(header,seq))
 
 def parse_fasta(input, not_standard_nucleotides=False):
     """ Usage: for (header,seq) in parse_fasta(input): <do stuff>. Input can be a filename or generator. """
@@ -44,9 +43,9 @@ def parse_fasta(input, not_standard_nucleotides=False):
         else: 
             seq += line.strip()
             # exit with an error if the file doesn't parse right! (illegal seq characters or a no-header sequence)
-            #   (maketrans('','') is an empty table - all I'm doing here is using the second argument to delete characters.
-            #   in python 2.6+ I can use None instead for the same effect, but this should make it run in 2.5.)
-            if not not_standard_nucleotides and line.strip().upper().translate(maketrans('',''),'ACTGURYKMSWBDHVN .-*'): 
+            if not not_standard_nucleotides and line.strip().upper().translate(None, 'ACTGURYKMSWBDHVN .-*'): 
+            # in python 2.5 and before this needed maketrans('','') instead of None, and "from string import maketrans"
+            # (maketrans('','') is an empty table - all I'm doing here is using the second argument to delete characters)
                 raise Exception("Error: invalid sequence line! %s"%line)
                 # TODO shouldn't really hard-code the allowed bases...
                 # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?

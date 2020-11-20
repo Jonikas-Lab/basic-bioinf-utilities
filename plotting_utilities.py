@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 """
 Various plotting utilities I wrote (usually for matplotlib) - see docstring for each function for what it does.
  -- Weronika Patena, 2010-2012
@@ -82,10 +82,13 @@ def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0
 def legend(colortext=False, *args, **kwargs):
     """ make the legend with optionally colored text, and medium instead of large font size. 
     """
-    leg = mplt.legend(*args, prop=FontProperties(size='medium'), **kwargs)
+    if 'frameon' not in kwargs:     kwargs['frameon'] = False
+    if 'prop' not in kwargs:        kwargs['prop'] = FontProperties(size='medium')
+    leg = mplt.legend(*args, **kwargs)
     if colortext:
         for line,text in zip(leg.get_lines(), leg.get_texts()):
             text.set_color(line.get_color())
+    return leg
 
 
 def remove_legend(ax=None):
@@ -438,6 +441,6 @@ def plot_function_by_window_size(data,window_size_list,function,figsize=(),title
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
-    print "This is a module for import by other programs - it doesn't do anything on its own.  Running tests..."
-    print "NO TESTS FOR THIS FILE"
+    print("This is a module for import by other programs - it doesn't do anything on its own.  Running tests...")
+    print("NO TESTS FOR THIS FILE")
     #unittest.main()

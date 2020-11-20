@@ -19,8 +19,8 @@ def read_input():
         # TODO this is an issue with large files, since it tries to read the whole thing into memory.
         # TODO maybe I could just return the open file (or a fileinput thing) instead of the list of lines?
         if os.path.lexists(arguments[0]):
-            if debug:   print "Processing input as a list of files..."
-            if debug:   print "\t%s"%'\n\t'.join(arguments)
+            if debug:   print("Processing input as a list of files...")
+            if debug:   print("\t%s"%'\n\t'.join(arguments))
             input = ''
             for infile in arguments:
                 INFILE = open(infile,'r')
@@ -40,4 +40,4 @@ def read_input():
 if __name__ == '__main__':
     input = read_input()
     # TODO what's '\b'?
-    print '\b'.join(input)
+    print('\b'.join(input))

@@ -20,7 +20,7 @@ import time
 
 def timenow():
     """ Print the current time as a string. """
-    print time.ctime(time.time())
+    print(time.ctime(time.time()))
 
 
 ######################################## STRUCTURES / CLASSES / ETC ########################################
@@ -40,7 +40,7 @@ def add_to_dict_no_replacement(dictionary, key, new_val, key_name='key', val_nam
     if key in dictionary and dictionary[key] != new_val:
         error_msg = "Attempting to change existing %s for %s %s! (old %s, new %s)"%(val_name,key_name, key, dictionary[key], new_val)
         if raise_exception:   raise ValueError(error_msg)
-        if print_error:       print "ERROR: %s. NOT CHANGING the dictionary."%error_msg
+        if print_error:       print("ERROR: %s. NOT CHANGING the dictionary."%error_msg)
     else:
         dictionary[key] = new_val
 
@@ -430,11 +430,11 @@ def print_text_from_file(infile, OUTFILE=None, printing=True, add_newlines=0):
     line_count = 0
     for line in open(infile):
         if OUTFILE is not None:     OUTFILE.write(line)
-        if printing:                print line,
+        if printing:                print(line),
         line_count += 1
     if add_newlines:
         if OUTFILE is not None:     OUTFILE.write('\n'*add_newlines)
-        if printing:                print '\n'*add_newlines,
+        if printing:                print('\n'*add_newlines),
     return line_count
 
 
@@ -457,7 +457,7 @@ def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True,
         program_name = command.split(' ')[0]
     output = "### Running %s: %s"%(program_name, command)
     if LOGFILE is not None:     LOGFILE.write(output+'\n')
-    if printing:                print output
+    if printing:                print(output)
     return run_command_get_output(command, shell)
 
 
@@ -470,12 +470,12 @@ def run_command_print_info_output(command, LOGFILE=None, printing_level=2, shell
     The command's return code is returned.
     """
     header_line = "### Running %s: %s\n"%((program_name or command.split(' ')[0]), command) 
-    if printing_level>0:        print header_line
+    if printing_level>0:        print(header_line)
     stdout, stderr, retcode = run_command_get_output(command, shell)
     command_output = stdout + stderr
     if not command_output.startswith('\n'):  header_line += '\n'
     full_output = command_output + '\n'*add_newlines
-    if printing_level>1:        print full_output
+    if printing_level>1:        print(full_output)
     if LOGFILE is not None:     LOGFILE.write(header_line + full_output)
     return retcode
 
@@ -653,7 +653,7 @@ def get_sets_from_cutoffs(value_dict, value_ranges):
     return ranges_to_sets
     # TODO add to unit-tests
 
-### local min/max finding
+### more complicated data processing
 
 def find_local_maxima_by_width(data, N_surrounding_points=1, include_start_end=True):
     """ Return list of local maxima (value,index) tuples; deals with noise by requiring N lower values on each side.
@@ -709,7 +709,7 @@ def find_local_maxima_by_width(data, N_surrounding_points=1, include_start_end=T
 ### moving average and moving median, plus some help functions (anything starting with _ won't be imported)
 
 def _check_input(data,window_size):
-    if window_size<1 or window_size>len(data):   raise ValueError, "window size must be between 1 and data length."
+    if window_size<1 or window_size>len(data):   raise ValueError("window size must be between 1 and data length.")
 
 def _make_window_indices(data,window_size):
     half_window = int(window_size/2)
@@ -1213,5 +1213,5 @@ class Testing_everything(unittest.TestCase):
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
-    print "This is a module for import by other programs - it doesn't do anything on its own.  Running tests..."
+    print("This is a module for import by other programs - it doesn't do anything on its own.  Running tests...")
     unittest.main()

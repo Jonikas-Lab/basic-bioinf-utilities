@@ -19,14 +19,14 @@ def transform_sequence_input(full_input, transform_function):
     # full_input is a list of lines, so convert it to string or this won't work
     if str(full_input).count('>')>0:    fasta = True
     else:                               fasta = False
-    if debug: print '\n\t### INPUT:\n%s\t### END_INPUT\n'%full_input
+    if debug: print('\n\t### INPUT:\n%s\t### END_INPUT\n'%full_input)
     if fasta:
         for (header,seq) in parse_fasta.parse_fasta(full_input):
             output.append((header,transform_function(seq)))
     else:
         for line in full_input:
             output.append(transform_function(line))
-    if debug:   print '\n\t######### FINAL OUTPUT: #########'%output
+    if debug:   print('\n\t######### FINAL OUTPUT: #########'%output)
     return output
 
 ### Just a basic swapcase function to test the transform_sequence_input function
@@ -40,4 +40,4 @@ if __name__ == '__main__':
     try:                
         for (header,seq) in transform_sequence_input(input,swap_case):  parse_fasta.print_seq(header,seq)
     except ValueError:   
-        for line in transform_sequence_input(input,swap_case):          print line
+        for line in transform_sequence_input(input,swap_case):          print(line)

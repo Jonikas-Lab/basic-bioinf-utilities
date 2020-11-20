@@ -5,6 +5,7 @@ Weronika Patena, nov2008
 """
 
 import string
+import sys
 
 debug = 0
 
@@ -35,8 +36,11 @@ def complement_table_setup():
             # all other characters just get preserved, which is good. 
     # define actual complement translation tables
     for seq_type in DNA,RNA:
-        complement_table[seq_type] = string.maketrans(original_bases[seq_type],
-                                                      complement_bases[seq_type])
+        # in python2 maketrans was a top-level function under string, but in python3 it's a method of string objects, ugh
+        if sys.version_info.major == 2:
+            complement_table[seq_type] = string.maketrans(original_bases[seq_type], complement_bases[seq_type])
+        else:
+            complement_table[seq_type] = ''.maketrans(original_bases[seq_type], complement_bases[seq_type])
     return complement_table
 
 # When called/imported, always set up the complement table
