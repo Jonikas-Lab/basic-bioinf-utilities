@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 """
 Parse/reformat a fasta file
  --Weronika Patena, nov2008
@@ -24,12 +24,16 @@ def print_seq(line):
         (header,seq) = line
         print(">%s\n%s"%(header,seq))
 
-def parse_fasta(input, not_standard_nucleotides=False):
+def parse_fasta(INPUT, not_standard_nucleotides=False):
     """ Usage: for (header,seq) in parse_fasta(input): <do stuff>. Input can be a filename or generator. """
     header,seq = '',''
     # If the input is a filename, open it first
-    if type(input)==str:    input = open(input)
-    for line in input:
+    if type(INPUT)==str: 
+        isfile = True
+        INPUT = open(INPUT)
+    else:
+        isfile = False
+    for line in INPUT:
         # DON'T skip empty lines - there may be empty sequences in the file!
         #if not line.strip():    continue
         # if you find a header line, start a new entry, first yielding the previous entry
@@ -41,17 +45,24 @@ def parse_fasta(input, not_standard_nucleotides=False):
             seq = ''
         # otherwise it's a seq line - add it to the current sequence (strip spaces/newlines)
         else: 
-            seq += line.strip()
-            # exit with an error if the file doesn't parse right! (illegal seq characters or a no-header sequence)
-            if not not_standard_nucleotides and line.strip().upper().translate(None, 'ACTGURYKMSWBDHVN .-*'): 
-            # in python 2.5 and before this needed maketrans('','') instead of None, and "from string import maketrans"
-            # (maketrans('','') is an empty table - all I'm doing here is using the second argument to delete characters)
-                raise Exception("Error: invalid sequence line! %s"%line)
-                # TODO shouldn't really hard-code the allowed bases...
-                # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?
+            # get rid of all whitespace characters by splitting and joining (there's probably a better way...)
+            seq += ''.join(line.strip().split())
+            # if there are illegal seq characters, exit with an error 
+            #  (checking for illegal characters by using translate to delete all legal characters and seeing if there's anything left)
+            if not not_standard_nucleotides: 
+                # maketrans makes a translation table - translate arg1 characters to arg2 characters and delete arg3 ones
+                #  (I don't know why it's a method instead of a function, it's stupid, since it doesn't use the parent string!)
+                wrong_characters = seq.upper().translate(''.maketrans('', '', 'ACTGURYKMSWBDHVN.-*'))
+                # in python 2 this looked like this instead (empty translation table and a separate list of chars to delete)
+                # from string import maketrans
+                # wrong_characters = seq.upper().translate(maketrans('',''), 'ACTGURYKMSWBDHVN.-*'})
+                if wrong_characters:
+                    raise Exception("Error: invalid sequence line! %s - wrong characters \"%s\""%(seq, wrong_characters))
+                    # TODO shouldn't really hard-code the allowed bases...
+                    # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?
             if not header: 
-                raise Exception("Error: Found a sequence line without a header first! %s"%line)
-    if type(input)==file:    input.close()
+                raise Exception("Error: Found a sequence line without a header first! %s"%seq)
+    if isfile:    INPUT.close()
     # also return the last entry, if it's non-empty!
     if header:
         yield (header,seq)

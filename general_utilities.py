@@ -372,9 +372,9 @@ def pickle(data, outfile_name, protocol=-1):
         Pickle.dump(data, PICKLEFILE, protocol)
 
 
-def unpickle(infile_name):
+def unpickle(infile_name, protocol=-1):
     """ Just run pickle.load on the infile and return the result - small convenience function. """
-    with open(infile_name) as PICKLEFILE:
+    with open(infile_name, 'r' if protocol==0 else 'rb') as PICKLEFILE:
         return Pickle.load(PICKLEFILE)
 
 
