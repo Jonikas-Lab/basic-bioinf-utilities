@@ -213,7 +213,8 @@ def all_colormaps_image(save_as='~/computers_and_programming/colormaps_all_matpl
     a = numpy.vstack((a,a))
     # Get a list of the colormaps in matplotlib.  Ignore the ones that end with '_r' because these are simply 
     #  reversed versions of ones that don't end with '_r'
-    maps = sorted(m for m in mplt.cm.datad if not m.endswith("_r"))
+    maps = set(mplt.cm.datad.keys()) | set(mplt.colormaps())
+    maps = sorted(m for m in maps if not m.endswith("_r"))
     nmaps = len(maps) + 1
     fig = mplt.figure(figsize=(5,10))
     fig.subplots_adjust(top=0.99, bottom=0.01, left=0.2, right=0.99)
