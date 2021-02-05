@@ -38,6 +38,21 @@ def savefig(figname, extensions=None, padding=0.2, dpi=300, dont_check_figname=F
 
 ################################ EASY FUNCTIONS FOR SPECIFIC PLOT TYPES ###################################
 
+def scatterplot(X, Y, **kwargs):
+    """ Scatterplot using mplt.plot with grey transparent dots and no lines """
+    default_kwargs = dict(linestyle='none', color='k', markeredgecolor='none', marker='o', alpha=0.3)
+    default_kwargs.update(kwargs)
+    mplt.plot(X, Y, **default_kwargs)
+
+
+def multi_scatterplot(X, Y):
+    """ Scatterplot/heatmap hybrid where I plot the same data with different transparency/color to show density """
+    for alpha,size,color in [(0.1, 2, 'k'), (0.01, 1.5, 'yellow'), (0.002, 0.5, 'red')]:
+        scatterplot(X, Y, alpha=alpha, markersize=size, color=color)
+        # apparently alpha=0.001 doesn't show up at all, and size 0.5 doesn't show up without an edge
+    
+
+
 def stacked_bar_plot(list_of_sample_category_lists, sample_names=[], bar_width=0.7, normalize=False, colors='bgrcmy', **kwargs):
     """ Plot list_of_sample_category_lists as a stacked bar plot (all categories per sample on top of each other). 
     Return list of plot_bar objects, to use in legend (like this: "mplt.legend(plot_bar_list, name_list)"). 
