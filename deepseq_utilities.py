@@ -1,14 +1,14 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 
 """ Various basic deepseq-related utilities I wrote - see separate function docstrings.  For importing only.
- --Weronika Patena, 2011
+ --Weronika Patena, 2011-2021
 """
 
 # basic libraries
 from __future__ import division
 import unittest
 # other packages
-import HTSeq
+import HTSeq    # no longer available for python2
 # my modules
 import basic_seq_utilities
 
@@ -90,13 +90,13 @@ def parse_fastx_sam_parallel(fastx_infile, sam_infile):
     sam_generator = iter(HTSeq.bundle_multiple_alignments(HTSeq.SAM_Reader(sam_infile)))
     if_finished_fastx, if_finished_sam = False, False
     while True:
-        try:                    name, seq = fastx_generator.next()
+        try:                    name, seq = next(fastx_generator)   # used to be generator.next() in python2
         except StopIteration:   if_finished_fastx = True
-        try:                    alns = sam_generator.next()
+        try:                    alns = next(sam_generator)
         except StopIteration:   if_finished_sam = True
-        # if both finished, good, we're doine
+        # if both finished, good, we're done
         if if_finished_fastx and if_finished_sam:
-            raise StopIteration
+            return
         # if one file was finished but the other wasn't, error!
         elif if_finished_fastx or if_finished_sam:
             raise DeepseqError("Parsing seq/aln files in parallel - inconsistent finished states! "
@@ -261,7 +261,7 @@ def primary_or_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02,
     if len(alns) == 1:      return alns[0]
     primary = [a for a in alns if not a.not_primary_alignment]
     if len(primary) == 1:   return primary[0]
-    elif len(primary) > 1:  print "Multiple primary alignments for %s - shouldn't happen!"%a.read.name
+    elif len(primary) > 1:  print("Multiple primary alignments for %s - shouldn't happen!"%a.read.name)
     return find_best_aln(alns, min_coverage, bad_coverage, max_errors, bad_errors)
 
 ################## unit tests ################## 
@@ -319,7 +319,8 @@ class Testing(unittest.TestCase):
         assert [len(x) for x in output] == [3, 3, 3]
         assert [len(x[2]) for x in output] == [2, 1, 1]
         assert output[0][2][0].read.name == output[0][0] == 'ROCKFORD:4:1:1680:975#0/1'
-        assert output[0][2][0].read.seq == output[0][1] ==  'ACTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA'
+        # this .decode() is needed because the first one is a bytes type: b'ACTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA'
+        assert output[0][2][0].read.seq.decode() == output[0][1] ==  'ACTAATACGCGGCCTGGAGCTGGACGTTGGAACCAA'
         # the generator isn't really run until you ask for its results, so I have to run list on it to get the error
         self.assertRaises(DeepseqError, list, parse_fastx_sam_parallel('_test_inputs/test.fq', '_test_inputs/test_parallel2.sam'))
 
