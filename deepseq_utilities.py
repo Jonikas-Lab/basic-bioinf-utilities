@@ -67,15 +67,15 @@ def parse_2fastq_parallel(file1, file2):
             generator2 = FastqGeneralIterator(INFILE2)
             if_finished_1, if_finished_2 = False, False
             while True:
-                try:                    name1, seq1, qual1 = generator1.next()
+                try:                    name1, seq1, qual1 = next(generator1)
                 except StopIteration:   if_finished_1 = True
-                try:                    name2, seq2, qual2 = generator2.next()
+                try:                    name2, seq2, qual2 = next(generator2)
                 except StopIteration:   if_finished_2 = True
                 name = name1.split()[0]
                 if not if_finished_1 and not if_finished_2:
                     yield (name, seq1, seq2, qual1, qual2)
                 elif if_finished_1 and if_finished_2:
-                    raise StopIteration
+                    return
                 else:
                     raise DeepseqError("One file finished but the other one didn't! Read name %s"%(
                                                                         name if if_finished_2 else name2.split()[0]))
