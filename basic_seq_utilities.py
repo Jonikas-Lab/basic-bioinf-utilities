@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 
 """
 Various basic DNA utilities I wrote (parse_fasta, complement, reverse_complement, find_seq_between, generate_seq_slices, ...) - most of them just imported from their own files, since I need them as separate programs too.
@@ -139,11 +139,14 @@ def parse_fastq(infile):
     """ Given a fastq file, yield successive (header,sequence,quality) tuples. """
     with open(infile) as INFILE:
         while True:
-            header = INFILE.next().strip()
             try:
-                seq = INFILE.next().strip()
-                header2 = INFILE.next().strip()
-                qual = INFILE.next().strip()
+                header = next(INFILE).strip()
+            except StopIteration:
+                return
+            try:
+                seq = next(INFILE).strip()
+                header2 = next(INFILE).strip()
+                qual = next(INFILE).strip()
             except (StopIteration):
                 raise Exception("Input FastQ file is malformed! Last record didn't have all four lines!")
 
@@ -234,7 +237,7 @@ def base_count_dict(seq_count_list, convert_counts=lambda x: x, skip_seq_length_
         return {base: [] for base in NORMAL_DNA_BASES}
     # get seq length, make sure they're all the same (or skip if desired
     if skip_seq_length_check:   seq_length = len(seq_count_list[0][0])
-    else:                       seq_length = get_all_seq_length(zip(*seq_count_list)[0])
+    else:                       seq_length = get_all_seq_length(list(zip(*seq_count_list))[0])
     # initialize the base-count lists to the right length, and fill it out by going over all the seqs
     base_count_dict = {base: [0 for _ in range(seq_length)] for base in NORMAL_DNA_BASES}
     for (seq,count) in seq_count_list:
@@ -271,8 +274,11 @@ def base_fraction_dict(seq_count_list, convert_counts=lambda x: x):
 
 def base_fractions_from_GC_content(overall_GC_content):
     """ Given a GC content, return base:fraction dict. Example: 0.6 gives {0.3 for G/C, 0.2 for A/T}. """
-    if not 0 <= overall_GC_content <= 1:
-        raise ValueError("overall_GC_content must be a number between 0 and 1 (inclusive)!")
+    try:
+        if not 0 <= overall_GC_content <= 1:
+            raise ValueError("overall_GC_content must be a number between 0 and 1 (inclusive)!")
+    except TypeError:
+            raise ValueError("overall_GC_content must be a number between 0 and 1 (inclusive)!")
     return { 'G': overall_GC_content/2, 'A': (1-overall_GC_content)/2, 
              'C': overall_GC_content/2, 'T': (1-overall_GC_content)/2 }
 
@@ -445,7 +451,7 @@ class Testing_everything(unittest.TestCase):
         # need to actually run through the whole iterator to test it - defining it isn't enough
         def parse_fastq_get_first_last(infile):
             seq_iter = parse_fastq(infile)
-            seq1 = seq_iter.next()
+            seq1 = next(seq_iter)
             for seq in seq_iter:    
                 seqN = seq
             return seq1, seqN
@@ -700,9 +706,9 @@ class Testing_everything(unittest.TestCase):
         #  the output is a list of (pos,slice_seq) tuples, 
         #   which I'm mostly switching to [pos_tuple, seq_tuple] with zip for easier typing.
         # testing step==1
-        assert zip(*generate_seq_slices('actg',1,1)) == [(1,2,3,4), tuple('a c t g'.split())]
-        assert zip(*generate_seq_slices('actg',2,1)) == [(1,2,3), tuple('ac ct tg'.split())]
-        assert zip(*generate_seq_slices('actg',3,1)) == [(1,2), tuple('act ctg'.split())]
+        assert list(zip(*generate_seq_slices('actg',1,1))) == [(1,2,3,4), tuple('a c t g'.split())]
+        assert list(zip(*generate_seq_slices('actg',2,1))) == [(1,2,3), tuple('ac ct tg'.split())]
+        assert list(zip(*generate_seq_slices('actg',3,1))) == [(1,2), tuple('act ctg'.split())]
         for slice_len in (4,5,10,100,12345):
             assert list(generate_seq_slices('actg',slice_len,1)) == [(1, 'actg')]
         # testing step==2, and the extra_last_slice argument
@@ -717,16 +723,16 @@ class Testing_everything(unittest.TestCase):
         for slice_len in (1,2,3,4,5,10,100,12345):
             for step in (0, -1, -2, -100, -1235):
                 G = generate_seq_slices('actg', slice_len, step)
-                self.assertRaises(ValueError, G.next)
+                self.assertRaises(ValueError, lambda: next(G))
         for slice_len in (1,2,3):
             for step in (.5, 1.5, 2.1, 9.0001, 4.999, 1235453534.1):
                 G = generate_seq_slices('actg', slice_len, step)
-                self.assertRaises(TypeError, G.next)
+                self.assertRaises(TypeError, lambda: next(G))
         # slice_len can't be 0 or negative, or a float (but it can be a float if it's >=seqlen, since then it never gets used)
         for step in (1,2,3,4,5,10,100,12345):
             for slice_len in (0, -1, -2, -100, -1314, 0.5, 2.1, -100.1, -0.01):
                 G = generate_seq_slices('actg', slice_len, step)
-                self.assertRaises((ValueError,TypeError), G.next)
+                self.assertRaises((ValueError,TypeError), lambda: next(G))
 
 
 if __name__=='__main__':
