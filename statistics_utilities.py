@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 
 """
 Various statistical convenience functions I wrote - see docstring for each function for what it does.
@@ -308,5 +308,5 @@ class Testing_everything(unittest.TestCase):
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
-    print "This is a module for import by other programs - it doesn't do anything on its own.  Running tests..."
+    print("This is a module for import by other programs - it doesn't do anything on its own.  Running tests...")
     unittest.main()

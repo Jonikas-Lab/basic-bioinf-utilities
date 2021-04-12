@@ -40,32 +40,33 @@ def parse_fasta(INPUT, not_standard_nucleotides=False):
         # (unless there is no previous entry, i.e no header, since a sequence can be empty)
         if line and line[0]=='>':
             if header:   
-                yield (header,seq)
+                yield (header,''.join(seq))
             header = line[1:].strip()      # line[1:] to get rid of the initial >
-            seq = ''
+            seq = []
         # otherwise it's a seq line - add it to the current sequence (strip spaces/newlines)
         else: 
             # get rid of all whitespace characters by splitting and joining (there's probably a better way...)
-            seq += ''.join(line.strip().split())
+            curr_seq = ''.join(line.strip().split())
             # if there are illegal seq characters, exit with an error 
             #  (checking for illegal characters by using translate to delete all legal characters and seeing if there's anything left)
             if not not_standard_nucleotides: 
                 # maketrans makes a translation table - translate arg1 characters to arg2 characters and delete arg3 ones
                 #  (I don't know why it's a method instead of a function, it's stupid, since it doesn't use the parent string!)
-                wrong_characters = seq.upper().translate(''.maketrans('', '', 'ACTGURYKMSWBDHVN.-*'))
+                wrong_characters = curr_seq.upper().translate(''.maketrans('', '', 'ACTGURYKMSWBDHVN.-*'))
                 # in python 2 this looked like this instead (empty translation table and a separate list of chars to delete)
                 # from string import maketrans
                 # wrong_characters = seq.upper().translate(maketrans('',''), 'ACTGURYKMSWBDHVN.-*'})
                 if wrong_characters:
-                    raise Exception("Error: invalid sequence line! %s - wrong characters \"%s\""%(seq, wrong_characters))
+                    raise Exception("Error: invalid sequence line! %s - wrong characters \"%s\""%(curr_seq, wrong_characters))
                     # TODO shouldn't really hard-code the allowed bases...
                     # MAYBE-TODO include option for proteins to check those?  And maybe an option for just ACTG?
+            seq.append(curr_seq)
             if not header: 
-                raise Exception("Error: Found a sequence line without a header first! %s"%seq)
+                raise Exception("Error: Found a sequence line without a header first! %s"%curr_seq)
     if isfile:    INPUT.close()
     # also return the last entry, if it's non-empty!
     if header:
-        yield (header,seq)
+        yield (header,''.join(seq))
 
 ### If called directly, test everything
 if __name__ == '__main__':
