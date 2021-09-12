@@ -195,13 +195,20 @@ def sort_lists_inside_dict(input_dict, reverse=False, key=None):
         else:               new_dict[k] = sorted(l, reverse=reverse, key=key)
     return new_dict
 
-def flatten_lists(input_val, unique_only=False):
-    """ Given a list or dict of lists/arrays/sets/etc, return list combining all the value lists (or a set if unique_only). """
-    if isinstance(input_val, dict):
-        input_val = input_val.values()
-    all_vals = sum([list(x) for x in input_val], [])
-    if unique_only: return set(all_vals)
-    else:           return all_vals
+def flatten_lists(arg, recursive=False):
+    """ Given a list/tuple of lists/arrays/tuples/etc, return list combining all the value lists (optionally recursively). """
+    def _flatten_lists(_arg):
+        flattened = []
+        for x in _arg:
+            try:                flattened.extend(list(x))
+            except TypeError:   flattened.append(x)
+        return flattened
+    flat = _flatten_lists(arg)
+    if recursive:           
+        while flat != arg:
+            arg = flat
+            flat = _flatten_lists(arg)
+    return flat
     # TODO unit-test!
 
 def percentile_from_counter(counter, percentile):
