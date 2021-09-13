@@ -49,6 +49,22 @@ CIGAR_TYPES_INTRON = ['N']     # 'N' is for introns, but we shouldn't be paying 
 CIGAR_TYPES_UNKNOWN = ['M']
 # MAYBE-TODO HTSeq doesn't appear aware of the = and X operations...  http://www-huber.embl.de/users/anders/HTSeq/doc/alignments.html#HTSeq.CigarOperation  - I emailed the author about it, no response
 
+# SAM format flag meanings, from https://samtools.github.io/hts-specs/SAMv1.pdf
+FLAG_MEANINGS = {1:    'the read is part of a pair', 
+                 2:    'the read is part of a pair that properly aligned as a pair', 
+                 4:    'unmapped', 
+                 8:    'the read is part of a pair and the other mate in the pair is unmapped', 
+                 16:   'alignment is reverse-complement', 
+                 32:   'the other mate in the pair aligned reverse-complement', 
+                 64:   'the read is mate 1 in a pair', 
+                 128:  'the read is mate 2 in a pair', 
+                 256:  'secondary alignment', 
+                 512:  'not passing filters, such as platform/vendor quality controls', 
+                 1024: 'PCR or optical duplicate', 
+                 2048: 'supplementary alignment (whatever that is)'
+                }
+
+
 class DeepseqError(Exception):
     """ Exception in this module; no special behavior."""
     pass
@@ -80,6 +96,7 @@ def parse_2fastq_parallel(file1, file2):
                     raise DeepseqError("One file finished but the other one didn't! Read name %s"%(
                                                                         name if if_finished_2 else name2.split()[0]))
     # TODO unit-test!
+
 
 def parse_fastx_sam_parallel(fastx_infile, sam_infile):
     """ Parse fastx and resulting sam file in parallel - generator yielding (name, seq, alignment_list) tuples.
@@ -118,9 +135,11 @@ def _get_HTSeq_optional_field_either_version(val_or_tuple):
     if isinstance(val_or_tuple, tuple): return val_or_tuple[1]
     else:                               return val_or_tuple
 
+
 def get_HTSeq_optional_field(HTSeq_alignment, field_name):
     """ Return value of optional field (like NM, XM, etc). """
     return _get_HTSeq_optional_field_either_version(HTSeq_alignment.optional_field(field_name))
+
 
 def check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as='unknown', ignore_introns=False):
     """ Return number of mutations in HTSeq_alignment, based on CIGAR string; -1 if unknown ('M') by default.
@@ -208,6 +227,8 @@ def check_mutation_count_try_all_methods(HTSeq_alignment, treat_unknown_as='unkn
                                                           ignore_introns=ignore_introns)
 
 
+### Other SAM alignment utilities
+
 def aln_read_coverage(HTSeq_alignment):
     """ Given an HTSeq alignment, return (start,end) tuple describing the part of the read it covers. """
     cigar = HTSeq_alignment.cigar
@@ -217,12 +238,14 @@ def aln_read_coverage(HTSeq_alignment):
     else:                           end = cigar[-1].query_to
     return start, end
 
+
 def aln_read_coverage_fraction(HTSeq_alignment, percent_string=False):
     """ Given an HTSeq alignment, return fraction of the read it covers (or percentage string). """
     s, e = aln_read_coverage(HTSeq_alignment)
     fraction = (e-s)/len(HTSeq_alignment.read.seq)
     if percent_string:  return "%.0f%%"%(fraction*100)
     else:               return fraction
+
 
 def read_coverage_all_alns(alns):
     """ Given a list of HTSeq alignment objects, return (start,end) tuple describing the part of the read covered by any of them. """
@@ -256,6 +279,7 @@ def find_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02, bad_e
     else:
         return None
 
+
 def primary_or_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02, bad_errors=0.05):
     """ Return primary alignment if there is one, or the only alignment if there's only one, otherwise same as find_best_aln. """
     if len(alns) == 1:      return alns[0]
@@ -263,6 +287,22 @@ def primary_or_best_aln(alns, min_coverage=0.8, bad_coverage=.5, max_errors=.02,
     if len(primary) == 1:   return primary[0]
     elif len(primary) > 1:  print("Multiple primary alignments for %s - shouldn't happen!"%a.read.name)
     return find_best_aln(alns, min_coverage, bad_coverage, max_errors, bad_errors)
+
+
+def interpret_flags(flag_number, details=False):
+    """ Given an overall flag number (like 35), split it into bits (32, 2, 1), optionally with verbal interpretations. """
+    flags = []
+    for i, bit in enumerate(reversed(bin(flag_number))):
+        if bit=='1':    flags.append(2**i)
+        elif bit=='0':  pass
+        elif bit=='b':  break
+        else:           print('This binary interpretation has weird bits! %s -> %s'%(flag_number, bin(flag_number)))
+    if details:         
+        for f in flags:
+            print('%s - %s'%(f, FLAG_MEANINGS[f]))
+    return flags
+
+
 
 ################## unit tests ################## 
 
@@ -406,6 +446,16 @@ class Testing(unittest.TestCase):
         for opt_data in [{'NM':1, 'MD':'A9'}, {'NM':1}, {'MD':'A9'}]:
             fake_alignment = Fake_deepseq_objects.Fake_HTSeq_alignment(cigar_string='M'*10, optional_field_data=opt_data)
             assert check_mutation_count_try_all_methods(fake_alignment) == 1
+
+    def test__interpret_flags(self):
+        for i in range(1,12):
+            self.assertEqual(interpret_flags(2**i), [2**i])
+            self.assertEqual(interpret_flags(2**i + 1), [1,2**i])
+            self.assertEqual(interpret_flags(2**i - 1), [2**j for j in range(i)])
+        self.assertEqual(interpret_flags(1), [1])
+        self.assertEqual(interpret_flags(3), [1,2])
+        self.assertEqual(interpret_flags(4), [4])
+        # and the details option I just tested by hand
 
 
 if __name__ == "__main__":
