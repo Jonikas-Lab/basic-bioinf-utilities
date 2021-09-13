@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 
 """
 Various general programming/math utilities I wrote - see docstring for each function for what it does.
@@ -55,7 +55,7 @@ def reduce_dicts_to_overlaps(dict_list, exception_on_different_values=False):
     # make a new dictionary list
     new_dict_list = []
     for d in dict_list:     
-        new_reduced_dict = dict([(k,v) for (k,v) in d.iteritems() if k in overlap_keys])
+        new_reduced_dict = dict([(k,v) for (k,v) in d.items() if k in overlap_keys])
         new_dict_list.append(new_reduced_dict)
     return new_dict_list
 
@@ -64,7 +64,7 @@ def filter_dict_by_keys(input_dict, good_keys):
     # MAYBE-TODO add a bad_keys arg, to do either positive or negative filtering?
     # make good_keys into a set for speed, if it wasn't one already
     good_keys = set(good_keys)
-    new_dict = {key:val for (key,val) in input_dict.iteritems() if key in good_keys}
+    new_dict = {key:val for (key,val) in input_dict.items() if key in good_keys}
     return new_dict
 
 def count_list_values(input_list):
@@ -150,12 +150,12 @@ def invert_dict_nodups(input_dict):
     """ Given a dict with no duplicate values, return value:key dict: {a:1,b:2]} -> {1:a,2:b}."""
     if not len(set(input_dict.values())) == len(input_dict.values()):
         raise ValueError("This method can't invert a dictionary with duplicate values! Use invert_dict_tolists.")
-    return dict([(value,key) for (key,value) in input_dict.iteritems()])
+    return dict([(value,key) for (key,value) in input_dict.items()])
 
 def invert_dict_tolists(input_dict):
     """ Given a dict (duplicate values allowed), return value:key_list dict: {a:1,b:2,c:1]} -> {1:[a,c],2:b}."""
     inverted_dict = collections.defaultdict(lambda: set())
-    for key,value in input_dict.iteritems():
+    for key,value in input_dict.items():
         inverted_dict[value].add(key)
     return dict(inverted_dict)      # changing defaultdict to plain dict to avoid surprises
 
@@ -163,7 +163,7 @@ def invert_listdict_nodups(input_dict):
     """ Given a dict with non-overlapping list/set values, return single_value:key dict: {a:[1,2],b:[3]} -> {1:a,2:a,3:b}.
     """
     inverted_dict = {}
-    for key,value_list in input_dict.iteritems():
+    for key,value_list in input_dict.items():
         try:
             for value in value_list:
                 if value in inverted_dict:
@@ -177,7 +177,7 @@ def invert_listdict_nodups(input_dict):
 def invert_listdict_tolists(input_dict):
     """ Given a dict with list/set values, return single_value:key_list dict: {a:[1,2],b:[2]]} -> {1:[a],2:[a,b]}."""
     inverted_dict = collections.defaultdict(lambda: set())
-    for key,value_list in input_dict.iteritems():
+    for key,value_list in input_dict.items():
         try:
             for value in value_list:
                 inverted_dict[value].add(key)
@@ -190,7 +190,7 @@ def invert_listdict_tolists(input_dict):
 def sort_lists_inside_dict(input_dict, reverse=False, key=None):
     """ Given a key:value_list dict, return same dict but with sorted value_lists (using key and reverse args for sort)."""
     new_dict = {}
-    for k,l in input_dict.iteritems():
+    for k,l in input_dict.items():
         if key is None:     new_dict[k] = sorted(l, reverse=reverse)
         else:               new_dict[k] = sorted(l, reverse=reverse, key=key)
     return new_dict
@@ -633,7 +633,7 @@ def clean_data_remove(input_data,remove_NaN=True,remove_Inf=True,remove_NegInf=T
         elif type(input_data)==set:     return set(new_data)
     # if dictionary, have to use a different removal method
     elif type(input_data)==dict:
-        return dict([(k,x) for (k,x) in input_data.iteritems() if not bad_value(x)])
+        return dict([(k,x) for (k,x) in input_data.items() if not bad_value(x)])
     else:
         raise ValueError("input_data argument must be a list, tuple, set or dictionary")
     # TODO add to unit-tests
@@ -762,7 +762,7 @@ def moving_median(data,window_size=10,return_indices=False):
 def split_into_N_sets_by_counts(ID_counts, N):
     """ Given an ID:count dictionary, return a list of sets of IDs with total counts balanced between the sets. """
     # make a sorted (high to low) list of (count,ID) tuples
-    counts_IDs = sorted([(count,ID) for (ID,count) in ID_counts.iteritems()], reverse=True)
+    counts_IDs = sorted([(count,ID) for (ID,count) in ID_counts.items()], reverse=True)
     output_counts_sets = [[0,set()] for i in range(N)]
     # now go over all IDs, adding an ID (and the corresponding count) to the smallest set each time
     for (count,ID) in counts_IDs:
