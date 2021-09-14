@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 
 """
 Various testing utilities I wrote (for unit tests, functional tests etc) - see docstring for each function/class for what it does.
@@ -74,7 +74,7 @@ def compare_files_with_regex(iter_1, iter_2,
     # if the arguments are lists/sets/something, convert them to iterators; this leaves iterators unchanged.
     iter1, iter2 = iter(iter_1), iter(iter_2)
 
-    if debug:   print " *** NEW COMPARISON ***"
+    if debug:   print(" *** NEW COMPARISON ***")
     while True:
 
         # advance both iterators to compare the next line pair (skipping IGNORE lines, and empty lines if requested)
@@ -84,7 +84,7 @@ def compare_files_with_regex(iter_1, iter_2,
         if iter1_stopped or iter2_stopped:  break
 
 
-        if debug:   print 'raw lines:\n\t1) "%s"\n\t2) "%s"'%(line1, line2)
+        if debug:   print('raw lines:\n\t1) "%s"\n\t2) "%s"'%(line1, line2))
 
         # raise exception if both elements are regexes - can't match two regexes!
         if line1.startswith('<REGEX>') and line2.startswith('<REGEX>'):
@@ -99,7 +99,7 @@ def compare_files_with_regex(iter_1, iter_2,
             if not line1.startswith('<REGEX>'):     line1 = clean_line(line1, ignore_whitespace, ignore_case)
             if not line2.startswith('<REGEX>'):     line2 = clean_line(line2, ignore_whitespace, ignore_case)
 
-        if debug:   print 'cleaned lines:\n\t1) "%s"\n\t2) "%s"'%(line1.strip(), line2.strip())
+        if debug:   print('cleaned lines:\n\t1) "%s"\n\t2) "%s"'%(line1.strip(), line2.strip()))
 
         # if one of the lines is a regex, apply it to the other line; return both lines if they don't match
         flags = re.IGNORECASE if ignore_case else 0
@@ -350,7 +350,7 @@ class Testing__everything(unittest.TestCase):
             assert compare_files_with_regex(['SOME TEXT'], other_list, ignore_case=False) == ('SOME TEXT',other_list[0])
             assert compare_files_with_regex(['SOME TEXT'], other_list, ignore_case=True) == True
         ### testing on files instead of lists - remember to restart the iterators every time!
-        if debug:   print " ************* file tests **************** "
+        if debug:   print(" ************* file tests **************** ")
         # non-regex files match themselves
         file1, file2, file3 = ('_test_inputs/textcmp_file1.txt','_test_inputs/textcmp_file2.txt',
                                '_test_inputs/textcmp_file3.txt')
@@ -371,7 +371,7 @@ class Testing__everything(unittest.TestCase):
         # comparing to the third file with extra empty lines, whitespace and case differences - all three True/False 
         #  arguments must be true to give a match, no other combination works.
         for first_file in (file1, file2):
-            if debug:   print " ****** %s vs %s ******"%(first_file, file3)
+            if debug:   print(" ****** %s vs %s ******"%(first_file, file3))
             with open(first_file,'r') as FILE1:
                 with open(file3,'r') as F3:
                     assert compare_files_with_regex(FILE1, F3, ignore_empty_lines=False, 
@@ -392,5 +392,5 @@ class Testing__everything(unittest.TestCase):
 
 if __name__=='__main__':
     """ If module is ran directly, run tests. """
-    print "This is a module for import by other programs - it doesn't do anything on its own.  Running tests..."
+    print("This is a module for import by other programs - it doesn't do anything on its own.  Running tests...")
     unittest.main()
