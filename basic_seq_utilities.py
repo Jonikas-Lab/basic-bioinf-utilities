@@ -78,6 +78,17 @@ def format_base_distance(x, approximate=True):
         elif not x % k: return "%skb"%(int(x/k))
         else:           return "%sbp"%x
 
+
+def base_number_to_raw(x):
+    """ Convert base number string to a raw number: 1bp -> 1, 1kb -> 1000, 1Mb -> 1000000. """
+    if x.isdigit(): 
+        return int(x)
+    value, unit = int(x[:-2]), x[-2:]
+    if unit=='bp':      return value
+    elif unit=='kb':    return value*1000
+    elif unit=='Mb':    return value*1000000
+    else:               raise ValueError('unknown unit %s! (in string %s)'%(unit, x))
+
 ### basic fasta/fastq functions
 
 def write_fasta_line(seqname, seq, OUTFILE=sys.stdout):
@@ -446,6 +457,21 @@ class Testing_everything(unittest.TestCase):
         for x in ['a', '1.23', [], [12]]:
             self.assertRaises((ValueError,TypeError), format_base_distance, x)
 
+    def test__base_number_to_raw(self):
+        assert base_number_to_raw('0') == 0
+        assert base_number_to_raw('0bp') == 0
+        assert base_number_to_raw('0kb') == 0
+        assert base_number_to_raw('0Mb') == 0
+        assert base_number_to_raw('1') == 1
+        assert base_number_to_raw('1bp') == 1
+        assert base_number_to_raw('1kb') == 1000
+        assert base_number_to_raw('1Mb') == 1000000
+        assert base_number_to_raw('11') == 11
+        assert base_number_to_raw('11bp') == 11
+        assert base_number_to_raw('11kb') == 11000
+        assert base_number_to_raw('11Mb') == 11000000
+        for x in ['10kk', '10b', 'a', '1.23']:
+            self.assertRaises((ValueError), base_number_to_raw, x)
 
     def test__parse_fastq(self):
         # need to actually run through the whole iterator to test it - defining it isn't enough
