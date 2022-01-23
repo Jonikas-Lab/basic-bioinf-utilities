@@ -455,6 +455,10 @@ def run_command_get_output(command, shell=True):
     return stdout, stderr, p.returncode
 
 
+def bell():
+    _ = run_command_get_output('aplay -q /home/weronika/computers_and_programming/nice_sounds/loud_bell.wav')
+
+
 def run_command_and_print_info(command, LOGFILE=None, printing=True, shell=True, program_name=None):
     """ Run command using subprocess.call; first print a line describing that to LOGFILE and/or stdout.
     The shell arg to subprocess.call is given by shell; LOGFILE should be an open file object; 
