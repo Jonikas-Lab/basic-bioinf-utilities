@@ -9,6 +9,7 @@ from __future__ import division
 import unittest
 # other packages
 import HTSeq    # no longer available for python2
+import matplotlib.pyplot as mplt
 # my modules
 import basic_seq_utilities
 
@@ -184,7 +185,8 @@ def check_mutation_count_by_optional_NM_field(HTSeq_alignment, negative_if_absen
     try:                        return get_HTSeq_optional_field(HTSeq_alignment, 'NM')
     except KeyError:    
         if negative_if_absent:  return -1
-        else:                   raise DeepseqError("Optional NM field missing in read %s - can't determine #errors!"%HTSeq_alignment.read.name)
+        else:                   raise DeepseqError("Optional NM field missing in read %s - can't determine #errors!"%
+                                                   HTSeq_alignment.read.name)
 
 
 def check_mutation_count_by_optional_MD_field(HTSeq_alignment):
@@ -213,31 +215,33 @@ def check_mutation_count_try_all_methods(HTSeq_alignment, treat_unknown_as='unkn
     """
     mutation_count = check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as='unknown', 
                                                           ignore_introns=ignore_introns)
-    if not mutation_count==-1:  
-        return mutation_count
+    if not mutation_count==-1:          return mutation_count
     mutation_count = check_mutation_count_by_optional_NM_field(HTSeq_alignment)
-    if not mutation_count==-1:  
-        return mutation_count
+    if not mutation_count==-1:          return mutation_count
     mutation_count = check_mutation_count_by_optional_MD_field(HTSeq_alignment)
-    if not mutation_count==-1:  
-        return mutation_count
-    if treat_unknown_as=='unknown':     
-        return -1
-    return check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as=treat_unknown_as, 
-                                                          ignore_introns=ignore_introns)
+    if not mutation_count==-1:          return mutation_count
+    if treat_unknown_as=='unknown':     return -1
+    return check_mutation_count_by_CIGAR_string(HTSeq_alignment, treat_unknown_as=treat_unknown_as, ignore_introns=ignore_introns)
 
 
 ### Other SAM alignment utilities
 
 def aln_read_coverage(HTSeq_alignment):
-    """ Given an HTSeq alignment, return (start,end) tuple describing the part of the read it covers. """
+    """ Given an HTSeq alignment, return (start,end) of the part of the read it covers (using CIGAR soft-padding info). """
     cigar = HTSeq_alignment.cigar
     if cigar[0].type == 'S':        start = cigar[1].query_from
     else:                           start = 0
     if cigar[-1].type == 'S':       end = cigar[-2].query_to
     else:                           end = cigar[-1].query_to
+    # if the alignment is -strand, the CIGAR operation positions use a reverse-complement of the read, so reverse them properly
+    if HTSeq_alignment.iv.strand == '-':
+        # sometimes only one alignment per read has the actual sequence - in those cases if this read doesn't have the sequence,
+        #   deduce the length from the CIGAR position info - I checked this on real data and it's correct.
+        #   also note that sequences are annoyingly often "bytes" objects (e.g. b'ATG' instead of 'ATG'), need to check for that.
+        if HTSeq_alignment.read.seq in ('', '*', b'', b'*'):    read_length = max(max(c.query_from, c.query_to) for c in cigar)
+        else:                                                   read_length = len(HTSeq_alignment.read.seq)
+        start, end = read_length - end, read_length - start
     return start, end
-
 
 def aln_read_coverage_fraction(HTSeq_alignment, percent_string=False):
     """ Given an HTSeq alignment, return fraction of the read it covers (or percentage string). """
@@ -251,6 +255,18 @@ def read_coverage_all_alns(alns):
     """ Given a list of HTSeq alignment objects, return (start,end) tuple describing the part of the read covered by any of them. """
     starts, ends = zip(*[aln_read_coverage(a) for a in alns])
     return min(starts), max(ends)
+
+
+def read_coverage_fraction_all_alns(alns):
+    """ Given a list of HTSeq alignment objects, return fraction of the read covered by any of them. """
+    starts, ends = zip(*[aln_read_coverage(a) for a in alns])
+    # there's probably a more elegant way to do interval overlaps, but this is simple and works
+    if_covered = [0 for _ in alns[0].read.seq]
+    for aln in alns:
+        start, end = aln_read_coverage(aln)
+        for i in range(start, end):
+            if_covered[i] = 1
+    return sum(if_covered)/len(if_covered)
 
 
 def print_aln_list_info(alns, sort=True):
@@ -301,6 +317,105 @@ def interpret_flags(flag_number, details=False):
         for f in flags:
             print('%s - %s'%(f, FLAG_MEANINGS[f]))
     return flags
+
+
+def plot_alignments(alns, cassette_length):
+    """ Plot a set of alignments against a read - one row per chromosome, cassette with a gradient, darker grey = fewer errors. """
+    filtered_alns = alns    # I could do filtering by chromosome or error rate or something
+    all_chroms = sorted(set(aln.iv.chrom for aln in filtered_alns))
+    for i, chrom in enumerate(all_chroms):
+        curr_alns = [aln for aln in filtered_alns if aln.iv.chrom == chrom]
+        if 'cassette' in chrom:
+            for aln in curr_alns:
+                color1 = aln.iv.start/cassette_length*256
+                color2 = aln.iv.end/cassette_length*256
+                start, end = aln_read_coverage(aln)
+                mplt.imshow([[color1, color2], [color1, color2]], interpolation='bicubic', cmap='cool',
+                            extent=(start, end, -i-0.4, -i+0.4), alpha=1, aspect='auto', vmin=0, vmax=255)
+        else:
+            # TODO make the colors into parameters
+            aln_starts_ends = [aln_read_coverage(aln) for aln in curr_alns]
+            aln_error_rates = [check_mutation_count_try_all_methods(aln)/(end-start)
+                               for aln,(start,end) in zip(curr_alns, aln_starts_ends)]
+            mplt.barh(y = [-i-0.4 for aln in curr_alns],
+                      width = [end-start for start,end in aln_starts_ends], height = 0.8, align = 'edge', 
+                      left = [start for start,end in aln_starts_ends], edgecolor='None',
+                      color=['0.4' if e<0.1 else ('0.6' if e<0.2 else '0.8') for e in aln_error_rates])
+    # plot the read at the end to keep the xrange from getting screwed up by imshow
+    read_len = len(alns[0].read.seq)
+    mplt.barh(0.6, read_len, 0.8, 0, align='edge', color='black')
+    mplt.xticks(range(0, int(read_len), 100), [])
+    # TODO I'd prefer X ticks to be up from the X axis rather than down, in this case, to save space & avoid confusion between subplots
+    mplt.yticks([])
+    mplt.xlim(read_len * -0.02, read_len * 1.02)
+    mplt.ylabel('%s'%read_len, rotation=90)
+    # TODO it might be nice to always arrange the reads so the cassette fragment is at the beginning - can I easily do that?
+
+
+def seqs_and_mismatches_from_CIGAR_match(c, aln, full_read_seq, ref_chromosome_seq):
+    """ Given a CIGAR match c, return the corresponding read and reference sequences (RC if needed) and mismatch positions. """
+    if c.type != 'M':   raise Exception("look_at_CIGAR_match intended only for M operations!")
+    # sometimes sequences are "bytes" instead of strings (b'ATG' vs 'ATG') and then they don't compare properly, UGH
+    if type(full_read_seq) is bytes:        full_read_seq = full_read_seq.decode()
+    if type(ref_chromosome_seq) is bytes:   ref_chromosome_seq = ref_chromosome_seq.decode()
+    # apparently the CIGAR info uses read_as_aligned, not the original read sequence as written in the SAM file, so RC it if needed
+    if aln.iv.strand == '-':    full_read_seq = basic_seq_utilities.reverse_complement(full_read_seq)
+    readseq = full_read_seq[c.query_from:c.query_to].upper()
+    refseq = ref_chromosome_seq[c.ref_iv.start:c.ref_iv.end].upper()
+    if not len(readseq) == len(refseq): 
+        raise Exception("read and ref lengths of a CIGAR match are different! %s\n%s\n%s"%(c, readseq, refseq))
+    mismatches = [i for i,(x,y) in enumerate(zip(readseq, refseq)) if x!=y]
+    # TODO I should have multiple options for this - sometimes I want it in read orientation and sometimes in reference orientation!
+    return readseq, refseq, mismatches
+
+
+def extract_sub_alignment_read_seq(aln, ref_start, ref_end):
+    """ Given an HTSeq alignment and start/end positions, return the read seq corresponding to that range, in reference orientation. 
+    """
+    # TODO TODO TODO implement this!
+
+
+def plot_alignments_CIGAR(alns, chromosome_seqs):
+    """ Plot a set of alignments against a read, one row per chromosome, with mismatches/indels marked """
+    # plot the alignment bars using plot_alignments; calculate cassette_length purely to pass to plot_alignments
+    cassette_lens = [len(seq) for chrom,seq in chromosome_seqs.items() if 'cassette' in chrom]
+    if len(cassette_lens) > 1:      raise Exception("multiple cassette chromosomes, need to disambiguate which length!")
+    elif len(cassette_lens)==1:     cassette_length = cassette_lens[0]
+    else:                           cassette_length = 0     # since in this case it doesn't matter
+    filtered_alns = alns    # I could do filtering by chromosome or error rate or something
+    plot_alignments(alns, cassette_length)
+    # now plot mismatch/indel symbols on top of that!
+    all_chroms = sorted(set(aln.iv.chrom for aln in filtered_alns))
+    for i, chrom in enumerate(all_chroms):
+        curr_alns = [aln for aln in filtered_alns if aln.iv.chrom == chrom]
+        for aln in curr_alns:
+            start, end = aln_read_coverage(aln)
+            curr_readpos = start
+            # TODO TODO TODO fix this to deal with the thing where CIGAR positions use RC reads for -strand alignments! IF I CARE.
+            for c in aln.cigar:
+                plot_kwargs = dict(markeredgecolor='k', markerfacecolor='k', linestyle='None')
+                if c.type == 'S':   continue
+                elif c.type =='D':  # deletion in read - will be a single position regardless of deletion size
+                    mplt.plot(c.query_from, -i, marker='x', **plot_kwargs)
+                elif c.type =='I':  # insertion in read - may be multiple bases
+                    mplt.plot(range(c.query_from, c.query_to), [-i for x in range(c.query_from,c.query_to)], marker='+', **plot_kwargs)
+                elif c.type =='M':  # match OR mismatch - need to look up the reference sequence and compare
+                    readseq, refseq, mismatches = look_at_CIGAR_match(c, aln, alns[0].read.seq, chromosome_seqs[chrom])
+                    mplt.plot([x+c.query_from for x in mismatches], [-i for _ in mismatches], marker='d', **plot_kwargs)
+                else:               raise Exception("CIGAR type %s not implemented!"%c.type)
+
+
+def plot_alignments_100(aln_sets, cassette_length):
+    """ Plot alignments for a set of 100 reads in subplots, using plot_alignments. """
+    mplt.figure(figsize=(30,16))
+    n = 0
+    for alns in sorted(aln_sets, key = lambda x: len(x[0].read.seq)):
+        n += 1
+        mplt.subplot(25, 4, n)
+        plot_alignments(alns, cassette_length)
+    mplt.suptitle("black=read, aqua-pink gradient=cassette 5'-3', grey=chromosome (dark error rate <10%, pale >20%); "
+                  +"xtick=100bp; Y labels are read lengths in bp", y=.915)
+    mplt.subplots_adjust(wspace=0.05, hspace=0.1)
 
 
 
