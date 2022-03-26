@@ -11,6 +11,7 @@ import sys, os
 import unittest
 import collections
 import pickle as Pickle     # rename so I can use pickle as a function name
+import dill
 import subprocess
 import time
 # other packages
@@ -383,6 +384,14 @@ def unpickle(infile_name, protocol=-1):
     """ Just run pickle.load on the infile and return the result - small convenience function. """
     with open(infile_name, 'r' if protocol==0 else 'rb') as PICKLEFILE:
         return Pickle.load(PICKLEFILE)
+
+
+def save_session(session_file='session.dill'):
+    dill.dump_session('session.dill')
+
+
+def save_session(session_file='session.dill'):
+    dill.load_session('session.dill')
 
 
 ### Writing to files
