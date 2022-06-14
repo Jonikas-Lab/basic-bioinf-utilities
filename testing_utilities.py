@@ -27,7 +27,7 @@ def _advance_iter_keep_state(iterator, skip_IGNORE_lines=False, skip_empty_lines
                      or (skip_empty_lines and not next_item.strip(' \t\n\r')):
         first_pass = False
         try:
-            next_item = iterator.next()
+            next_item = next(iterator)
         except StopIteration:
             next_item = ''
             stop_iteration = True
