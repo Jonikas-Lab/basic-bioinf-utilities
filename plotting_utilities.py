@@ -371,6 +371,15 @@ add_colormap_to_matplotlib({'red': ((0.0, 1.0, 1.0),
                                      (1.0, 0.0, 0.0))}, 
                            'wp_WhBkYl')
 
+# And just black-yellow
+add_colormap_to_matplotlib({'red': ((0.0, 0.0, 0.0), 
+                                    (1.0, 1.0, 1.0)), 
+                            'green': ((0.0, 0.0, 0.0), 
+                                      (1.0, 1.0, 1.0)), 
+                            'blue': ((0.0, 0.0, 0.0), 
+                                     (1.0, 0.0, 0.0))}, 
+                           'wp_BkYl')
+
 # Getting a bit more complicated by taking fractions of the values (I have to admit I don't quite understand how it works)
 # Notes: try plotting gh_red, gh_green and gh_blue in the -0.1 to 1.1 range... I THINK what's going on is that only x in the 0-1 range are considered, and that values below 0 count as 0, and values above 1 count as 1.  000 is black, 111 is white.  So:
 # - to make colors lighter, keep the value at 1 the same but raise the values for lower x; 
