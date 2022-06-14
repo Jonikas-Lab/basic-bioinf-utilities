@@ -388,9 +388,12 @@ def unpickle(infile_name, protocol=-1):
 
 def save_session(session_file='session.dill'):
     dill.dump_session('session.dill')
+    # TODO this fails on its inability to pickle some things! In particular 'InstalledSTPackage' whatever that is.
+    # Can I make it exclude some things?  Help(dill) says it can't pickle generators...  Read more of the help! TODO TODO TODO 
+    # TODO could also replace pickle.dump/load above with dill.dump/load?  But is it backward-compatible with pickle? I think so?
 
 
-def save_session(session_file='session.dill'):
+def load_session(session_file='session.dill'):
     dill.load_session('session.dill')
 
 
